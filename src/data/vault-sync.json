@@ -1,0 +1,281 @@
+{
+  "advisor_questions": [
+    {
+      "id": "Thermodynamics Advis",
+      "date_raised": "2026-06-03T00:00:00.000Z",
+      "question": "Thermodynamics Advisor Questions — Prof. Stephen Peuker",
+      "what_i_tried": "\n# Thermodynamics Advisor Questions — Prof. Stephen Peuker",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Does Lupo expose a S",
+      "date_raised": "2026-06-05T00:00:00.000Z",
+      "question": "Q: Does Lupo expose a SLURM API that ThermalOS can call for job actions?",
+      "what_i_tried": "\n# Q: Does Lupo expose a SLURM API that ThermalOS can call for job actions?",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "What is dR_theta/dT_",
+      "date_raised": "2026-06-05T00:00:00.000Z",
+      "question": "Q: What is dR_theta/dT_amb at each power level? (sensitivity analysis)",
+      "what_i_tried": "\n# Q: What is dR_theta/dT_amb at each power level?",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "What is the right pe",
+      "date_raised": "2026-06-05T00:00:00.000Z",
+      "question": "Q: What is the right persistent storage for thermal fingerprints?",
+      "what_i_tried": "\n# Q: What is the right persistent storage for thermal fingerprints?",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Q_lead_time — Lead T",
+      "date_raised": "2026-06-01T00:00:00.000Z",
+      "question": "Q_lead_time — Lead Time Before Throttling",
+      "what_i_tried": "\n# Q_lead_time — Lead Time Before Throttling",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Q_discovery_progress",
+      "date_raised": "2026-06-01T00:00:00.000Z",
+      "question": "Q_discovery_progress — Have Discovery Calls Started?",
+      "what_i_tried": "\n# Q_discovery_progress — Have Discovery Calls Started?",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Q_conference_venue —",
+      "date_raised": "2026-06-01T00:00:00.000Z",
+      "question": "Q_conference_venue — Publication Target and Deadline",
+      "what_i_tried": "\n# Q_conference_venue — Publication Target and Deadline",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Q_ambient_measuremen",
+      "date_raised": "2026-06-01T00:00:00.000Z",
+      "question": "Q_ambient_measurement — BMC Native Ambient or External Sensor",
+      "what_i_tried": "\n# Q_ambient_measurement — BMC Native Ambient or External Sensor",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Should ThermalOS bui",
+      "date_raised": "2026-06-05T00:00:00.000Z",
+      "question": "Q: Should ThermalOS build its own reasoning layer or integrate an existing LLM framework?",
+      "what_i_tried": "\n# Q: Should ThermalOS build its own reasoning layer or integrate an existing LLM framework?",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Q_Kundu_email — Cal ",
+      "date_raised": "2026-06-01T00:00:00.000Z",
+      "question": "Q_Kundu_email — Cal Poly Email for Supabase Allowlist",
+      "what_i_tried": "\n# Q_Kundu_email — Cal Poly Email for Supabase Allowlist",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Q_E004_data — Where ",
+      "date_raised": "2026-06-01T00:00:00.000Z",
+      "question": "Q_E004_data — Where is E004 replication data?",
+      "what_i_tried": "\n# Q_E004_data — Where is E004 replication data?",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    },
+    {
+      "id": "Q_AI_Factory_access ",
+      "date_raised": "2026-06-01T00:00:00.000Z",
+      "question": "Q_AI_Factory_access — Hardware Access Confirmation",
+      "what_i_tried": "\n# Q_AI_Factory_access — Hardware Access Confirmation",
+      "status": "open",
+      "answer": "",
+      "answered_date": "",
+      "priority": "normal"
+    }
+  ],
+  "outreach": [],
+  "evidence": [
+    {
+      "claim": "Question",
+      "proof": "** Are infra/platform engineers at neoclouds saying \"yes, cooling-related throttling is a manual mess that costs us\"?",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Why it kills",
+      "proof": "** YC's hardest objection is \"is this a real pain someone pays for, or a clever metric?\" Without quotes from named operators, this is unanswerable.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Status",
+      "proof": "** [[Q_discovery_progress]] — unknown if calls have started.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Resolution path",
+      "proof": "** Run 10 calls per [[03_discovery_call_script]]. Need at minimum 2–3 strong positive signals (manual diagnostic process, failed internal tooling attempts, named cost) by August.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Time required",
+      "proof": "** ~2 weeks of consistent outreach. No dependencies.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Question",
+      "proof": "** Does R_theta rise before throttling, and by how much? See [[Q_lead_time]].",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Why it kills",
+      "proof": "** The narrative is either \"predictive maintenance for GPU clusters\" or \"GPU efficiency observability.\" YC will probe which. An unconvincing answer (\"we hope so, we'll find out in fall\") versus a sharp answer (\"we measured X minutes of lead time on Y degradation modes\") is the difference between a strong and weak application.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Status",
+      "proof": "** Blocked by hardware ([[E-LT]] requires [[Sam]]'s testbed, fall 2026) and access ([[Q_AI_Factory_access]]).",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Mitigation if [[E-LT]] cannot run before September",
+      "proof": "**",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Question",
+      "proof": "** Can Amogh actually run experiments on the DGX B200 this summer? See [[Q_AI_Factory_access]].",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Why it kills",
+      "proof": "** \"We have access to a 4x DGX B200 cluster funded by a $3M university investment\" is a real moat. \"We're hoping to get access\" is not. YC will probe the difference.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Status",
+      "proof": "** [[Kundu]] checking access protocols. Unresolved.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Resolution path",
+      "proof": "** Direct conversation with Kundu. Push for clarity within 2 weeks. If access is gated on EE 4400 fall enrollment, plan accordingly (rent Lambda/Vast in interim).",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Question",
+      "proof": "** Is [[OSS_agent_v0]] shipped, with at least a handful of installs?",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Why it matters",
+      "proof": "** \"Open-source tool with N installs at neoclouds\" is the strongest version of the bottoms-up wedge. \"OSS agent in development\" is weaker but still acceptable.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Status",
+      "proof": "** Build sequence outlined ([[OSS_agent_v0]] step 1–6). Not started (based on current vault state).",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Resolution path",
+      "proof": "** Step 1–3 (telemetry abstraction + virtual ambient + perf/watt + readout) is the minimum viable. Could be shipped by August with focused effort. Steps 4–5 (drift detector + packaging) make it useful.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Question",
+      "proof": "** What conference, what deadline, what's submitted by September? See [[Q_conference_venue]].",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Why it matters",
+      "proof": "** \"Targeting [Conference X] with submission deadline [Y]\" is materially stronger than \"planning to publish.\" Kundu has redirected toward publication; YC reads this as legitimacy.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Status",
+      "proof": "** Venue unspecified. Blocking.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Resolution path",
+      "proof": "** Ask Kundu. 1–2 weeks.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Question",
+      "proof": "** Where is the E004 replication data? See [[Q_E004_data]].",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Why it matters",
+      "proof": "** F5 (reproducibility, 1.68% CoV across 3 trials) is one of the strongest Stage 1 claims and is currently unverifiable from the CSV provided. A YC reviewer with technical depth could ask for the data — it should exist.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Status",
+      "proof": "** Missing from [[ThermalOS_Measurements_Raw]].",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    },
+    {
+      "claim": "Resolution path",
+      "proof": "** Locate the data or re-run the experiment. Low effort if data exists; medium effort if it must be re-run.",
+      "location": "synthesis/yc_blockers.md",
+      "status": "Evidence collected"
+    }
+  ],
+  "decision_log": [],
+  "timeline": [],
+  "generated_at": "2026-06-05T21:05:55.275Z",
+  "vault_root": "/Users/amogh/thermalos-vault"
+}

@@ -1,0 +1,1768 @@
+/**
+ * Theta — Landing page (v2)
+ *
+ * Design principles:
+ *   · No neon glows. Color encodes information only.
+ *   · Precision instrument aesthetic: oscilloscope / DAQ / PCB.
+ *   · Custom named-area CSS grids. No generic span-N bento.
+ *   · Animations: line-draw, bar-fill, count-up. Nothing decorative.
+ *   · Typography drives the page. Graphics serve the data.
+ */
+
+import * as React from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { FLEET_BASE, researchPath } from './config';
+import { ChevronRight } from 'lucide-react';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { animate, stagger } from 'animejs';
+// three.js / R3F is heavy (~600 kB) — lazy-load so the hero text paints first
+// and the 3D canvas streams in. A height-matched placeholder avoids layout shift.
+const GPUHeroScene = React.lazy(() => import('./components/GPUHeroScene'));
+const DataCenterShowcase = React.lazy(() => import('./components/DataCenterShowcase'));
+const OperatorViewShowcase = React.lazy(() => import('./components/OperatorViewShowcase'));
+import ThetaLogo from '../../components/ThetaLogo';
+import { COLORS, TYPOGRAPHY, COMPONENTS, EASING } from './design-system';
+
+/* ─── Design tokens (Industrial Instrument aesthetic) ───────────────────── */
+const T = {
+  bg:        COLORS.bg.deep,
+  s0:        COLORS.bg.panel,
+  s1:        COLORS.bg.surface,
+  s2:        COLORS.bg.raised,
+  s3:        '#2C2738',
+  border:    COLORS.steel.faint,
+  borderHi:  '#5A5142',
+  text:      COLORS.steel.bright,
+  muted:     COLORS.steel.muted,
+  faint:     COLORS.steel.faint,
+  healthy:   COLORS.thermal.healthy,
+  caution:   COLORS.thermal.caution,
+  rising:    COLORS.thermal.rising,
+  critical:  COLORS.thermal.critical,
+  bp:        COLORS.accent,
+  amber:     COLORS.amber.medium,
+  copper:    COLORS.copper,
+  platinum:  COLORS.platinum,
+  ink:       COLORS.ink,
+};
+
+const FD = TYPOGRAPHY.display.fontFamily;
+const FM = TYPOGRAPHY.labels.fontFamily;
+const EASE = EASING.snappy;
+
+function rm() {
+  return typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/* ─── Gradient orb background ────────────────────────────────────────────── */
+function GradientOrbs({ variant = 'green' }: { variant?: 'green' | 'blue' | 'mixed' }) {
+  const orbs = variant === 'green' ? [
+    { cls: 'tos-orb-a', color: 'rgba(232,228,216,.06)', w: 640, h: 520, top: '-18%', left: '60%', blur: 120 },
+    { cls: 'tos-orb-b', color: 'rgba(212,175,55,.04)',  w: 380, h: 380, top: '55%',  left: '5%',  blur: 90  },
+  ] : variant === 'blue' ? [
+    { cls: 'tos-orb-a', color: 'rgba(232,228,216,.07)', w: 580, h: 460, top: '-15%', left: '55%', blur: 110 },
+    { cls: 'tos-orb-b', color: 'rgba(232,228,216,.04)', w: 340, h: 340, top: '60%',  left: '2%',  blur: 90  },
+  ] : [
+    { cls: 'tos-orb-a', color: 'rgba(232,228,216,.06)', w: 580, h: 480, top: '-20%', left: '62%', blur: 130 },
+    { cls: 'tos-orb-b', color: 'rgba(212,175,55,.05)',  w: 400, h: 400, top: '50%',  left: '3%',  blur: 100 },
+    { cls: 'tos-orb-c', color: 'rgba(232,228,216,.03)', w: 280, h: 280, top: '80%',  left: '70%', blur: 80  },
+  ];
+
+  return (
+    <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+      {orbs.map((o, i) => (
+        <div key={i} className={o.cls} style={{
+          position: 'absolute',
+          top: o.top, left: o.left,
+          width: o.w, height: o.h,
+          borderRadius: '50%',
+          background: `radial-gradient(ellipse at center, ${o.color} 0%, transparent 70%)`,
+          filter: `blur(${o.blur}px)`,
+          mixBlendMode: 'screen',
+          willChange: 'transform',
+        }} />
+      ))}
+    </div>
+  );
+}
+
+/* ─── Primitive icons ─────────────────────────────────────────────────────── */
+const ArrowRight = ({ s = 13 }: { s?: number }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12h14M12 5l7 7-7 7" />
+  </svg>
+);
+const GithubIcon = ({ s = 13 }: { s?: number }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22" />
+  </svg>
+);
+
+/* ─── Shared primitives ───────────────────────────────────────────────────── */
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: FM, fontSize: 10, fontWeight: 500, letterSpacing: '.18em', textTransform: 'uppercase', color: T.faint }}>
+      <span style={{ display: 'block', width: 20, height: 1, background: T.borderHi, flexShrink: 0 }} />
+      {children}
+    </div>
+  );
+}
+
+function Tag({ children, accent = false }: { children: React.ReactNode; accent?: boolean }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FM, fontSize: 10, letterSpacing: '.03em', padding: '3px 7px', borderRadius: 3, border: `1px solid ${accent ? T.healthy + '55' : T.border}`, color: accent ? T.healthy : T.muted, background: accent ? T.healthy + '0C' : T.s2 }}>
+      {children}
+    </span>
+  );
+}
+
+function Pulse({ color = T.healthy }: { color?: string }) {
+  return (
+    <span className="tos-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+  );
+}
+
+function Panel({ children, label, corner, style, glass }: {
+  children: React.ReactNode;
+  label?: string;
+  corner?: React.ReactNode;
+  style?: React.CSSProperties;
+  glass?: boolean;
+}) {
+  return (
+    <div className={glass ? 'tos-glass' : ''} style={{ border: `1px solid ${glass ? 'rgba(255,255,255,.06)' : T.border}`, borderRadius: 6, background: glass ? undefined : T.s1, overflow: 'hidden', transition: 'border-color .2s', ...style }}>
+      {(label || corner) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', borderBottom: `1px solid ${glass ? 'rgba(255,255,255,.05)' : T.border}`, background: glass ? 'rgba(0,0,0,.18)' : T.s0 }}>
+          {label && <span style={{ fontFamily: FM, fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase', color: T.faint }}>{label}</span>}
+          {corner}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/* ─── Section header ──────────────────────────────────────────────────────── */
+function SectionHead({ eyebrow, title, body, center }: {
+  eyebrow: string;
+  title: React.ReactNode;
+  body?: React.ReactNode;
+  center?: boolean;
+}) {
+  return (
+    <div style={{ maxWidth: 540, ...(center ? { margin: '0 auto', textAlign: 'center' } : {}) }}>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h2 style={{ fontFamily: "'Clash Display', 'Satoshi', Inter, system-ui, sans-serif", fontSize: 'clamp(28px,3.4vw,44px)', fontWeight: 600, letterSpacing: '-.03em', lineHeight: 1.05, color: T.text, margin: '14px 0 12px' }}>
+        {title}
+      </h2>
+      {body && <p style={{ fontFamily: FD, fontSize: 14.5, lineHeight: 1.65, color: T.muted }}>{body}</p>}
+    </div>
+  );
+}
+
+/* ─── R_theta trace (hero visualization) ─────────────────────────────────── */
+/*
+ * Schematic trace of R_theta over a single E003-style experiment:
+ *   Segments: pre_load (flat ~1.28) → load (ramp down to 0.72) → recovery (spike to 2.1, decay)
+ * Drawn with stroke-dashoffset animation — no glows, just hairline paths.
+ */
+function RthetaTrace() {
+  const svgRef  = useRef<SVGSVGElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const inView  = useInView(wrapRef, { once: true, amount: 0.4 });
+
+  /* Trace path points (viewport: 480w × 140h, y-domain 0–2.6 C/W) */
+  const W = 480; const H = 140; const pad = { t: 16, b: 28, l: 44, r: 16 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  function py(v: number): number { return pad.t + ch - (v / 2.6) * ch; }
+  function px(t: number): number { return pad.l + (t / 1) * cw; }     // t ∈ [0,1]
+
+  /* Key waypoints as [t, rtheta] pairs */
+  const trace: [number, number][] = [
+    [0,     1.28], [0.18,  1.28], [0.22,  1.14], [0.26, 0.90],
+    [0.30,  0.72], [0.52,  0.72], [0.56,  1.35], [0.60, 1.90],
+    [0.63,  2.10], [0.70,  1.95], [0.78,  1.72], [0.86, 1.50],
+    [0.92,  1.38], [0.97,  1.30], [1.00,  1.28],
+  ];
+
+  const pts = trace.map(([t, v]) => `${px(t).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
+
+  /* Region boundaries */
+  const regions = [
+    { label: 'PRE-LOAD', x0: 0, x1: 0.22, color: T.bp },
+    { label: 'LOAD', x0: 0.22, x1: 0.56, color: T.healthy },
+    { label: 'RECOVERY', x0: 0.56, x1: 1.0, color: T.rising },
+  ];
+
+  /* Y-axis ticks */
+  const yTicks = [0.5, 1.0, 1.5, 2.0, 2.5];
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || !inView || rm()) return;
+
+    const path = svg.querySelector<SVGPolylineElement>('[data-trace]');
+    if (!path) return;
+    const len = path.getTotalLength?.() ?? 600;
+    path.style.strokeDasharray  = String(len);
+    path.style.strokeDashoffset = String(len);
+    path.style.opacity = '1';
+
+    animate(path, {
+      strokeDashoffset: [len, 0],
+      duration: 1400,
+      ease: 'inOutSine',
+    });
+  }, [inView]);
+
+  return (
+    <div ref={wrapRef}>
+      <Panel label="RΘEFF TRACE · SINGLE EXPERIMENT · SCHEMATIC" corner={
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Tag><Pulse color={T.bp} />&nbsp;clean_idle</Tag>
+          <Tag accent><Pulse />&nbsp;under_load</Tag>
+          <Tag><Pulse color={T.rising} />&nbsp;recovery</Tag>
+        </div>
+      }>
+        <div className="tos-trace-live" style={{ background: T.s0, padding: '0 0 4px' }}>
+          <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }} aria-label="R-theta time series trace">
+            {/* Fine grid lines */}
+            {yTicks.map(v => (
+              <line key={v} x1={pad.l} x2={W - pad.r} y1={py(v)} y2={py(v)} stroke={T.border} strokeWidth="0.5" />
+            ))}
+
+            {/* Region labels */}
+            {regions.map(r => (
+              <g key={r.label}>
+                <line x1={px(r.x0)} x2={px(r.x0)} y1={pad.t} y2={H - pad.b} stroke={T.border} strokeWidth="0.5" strokeDasharray="3 2" />
+                <text x={(px(r.x0) + px(r.x1)) / 2} y={pad.t - 4} textAnchor="middle" fontFamily={FM} fontSize="8" fill={r.color} opacity="0.7">{r.label}</text>
+              </g>
+            ))}
+
+            {/* Threshold lines */}
+            <line x1={pad.l} x2={W - pad.r} y1={py(1.28)} y2={py(1.28)} stroke={T.bp} strokeWidth="0.6" strokeDasharray="4 3" opacity="0.5" />
+            <line x1={pad.l} x2={W - pad.r} y1={py(0.72)} y2={py(0.72)} stroke={T.healthy} strokeWidth="0.6" strokeDasharray="4 3" opacity="0.5" />
+
+            {/* Y-axis labels */}
+            {yTicks.map(v => (
+              <text key={v} x={pad.l - 6} y={py(v) + 3.5} textAnchor="end" fontFamily={FM} fontSize="8.5" fill={T.faint}>{v.toFixed(1)}</text>
+            ))}
+            <text x={pad.l - 6} y={py(2.6) + 3} textAnchor="end" fontFamily={FM} fontSize="8" fill={T.faint}>C/W</text>
+
+            {/* The trace */}
+            <polyline
+              data-trace
+              points={pts}
+              fill="none"
+              stroke={T.text}
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              style={{ opacity: 0 }}
+            />
+
+            {/* Highlight markers */}
+            <circle cx={px(0.3)} cy={py(0.72)} r="3" fill={T.healthy} />
+            <text x={px(0.3) + 6} y={py(0.72) - 4} fontFamily={FM} fontSize="9" fill={T.healthy}>0.72</text>
+            <circle cx={px(0.63)} cy={py(2.10)} r="3" fill={T.rising} />
+            <text x={px(0.63) + 5} y={py(2.10) - 4} fontFamily={FM} fontSize="9" fill={T.rising}>2.10</text>
+            <circle cx={px(0)} cy={py(1.28)} r="3" fill={T.bp} />
+            <text x={px(0) + 6} y={py(1.28) - 4} fontFamily={FM} fontSize="9" fill={T.bp}>1.28</text>
+          </svg>
+          <div style={{ padding: '8px 16px 10px', borderTop: `1px solid ${T.border}`, display: 'flex', gap: 20 }}>
+            <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>77.9% separation idle→load</span>
+            <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>·</span>
+            <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>recovery R_θ &gt; clean idle — thermal memory</span>
+            <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>·</span>
+            <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>E001–E004 · Tesla T4</span>
+          </div>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ─── Nav ─────────────────────────────────────────────────────────────────── */
+function Nav() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 12);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
+  return (
+    <nav className="tos-nav" style={{ position: 'sticky', top: 0, zIndex: 50, borderBottom: `1px solid ${scrolled ? 'rgba(255,255,255,.07)' : 'transparent'}`, background: scrolled ? 'rgba(9,9,13,.82)' : 'transparent', backdropFilter: scrolled ? 'blur(20px) saturate(160%)' : 'none', WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(160%)' : 'none', transition: 'border-color .3s, background .3s, backdrop-filter .3s', boxShadow: scrolled ? '0 1px 0 rgba(255,255,255,.04)' : 'none' }}>
+      <div style={{ maxWidth: 1240, margin: '0 auto', display: 'flex', alignItems: 'center', height: 54, padding: '0 32px', gap: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+          <ThetaLogo size={22} variant="full" color={T.healthy} />
+          <span style={{ fontFamily: FM, fontSize: 9.5, color: T.bp, border: `1px solid ${T.border}`, borderRadius: 3, padding: '2px 5px' }}>v0</span>
+        </div>
+        <div className="tos-nav-links" style={{ display: 'flex', gap: 26 }}>
+          {['signal', 'evidence', 'gap', 'pricing'].map(l => (
+            <a key={l} href={`#${l}`} style={{ fontFamily: FM, fontSize: 10.5, letterSpacing: '.04em', color: T.muted, textDecoration: 'none', transition: 'color .15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = T.text)}
+              onMouseLeave={e => (e.currentTarget.style.color = T.muted)}>
+              {l}
+            </a>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a href="https://github.com/Asomisetty27/thermalos" target="_blank" rel="noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FM, fontSize: 10.5, padding: '6px 10px', borderRadius: 4, border: `1px solid ${T.border}`, color: T.muted, textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi; (e.currentTarget as HTMLAnchorElement).style.color = T.text; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.border; (e.currentTarget as HTMLAnchorElement).style.color = T.muted; }}>
+            <GithubIcon s={12} /> github
+          </a>
+          <a href="https://pypi.org/project/thermalos/" target="_blank" rel="noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FD, fontSize: 13, fontWeight: 500, padding: '6px 14px', borderRadius: 4, background: T.healthy, color: '#1A1408', textDecoration: 'none', transition: 'opacity .15s' }}
+            onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '0.88')}
+            onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '1')}>
+            install <ArrowRight s={11} />
+          </a>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+/* ─── Install command — copy-on-click with caret blink ──────────────────── */
+function InstallBlock() {
+  const [copied, setCopied] = useState(false);
+  const cmd = 'pip install runtheta';
+  const copy = useCallback(() => {
+    navigator.clipboard?.writeText(cmd);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1400);
+  }, []);
+
+  return (
+    <button
+      onClick={copy}
+      style={{
+        display: 'flex', alignItems: 'center', width: '100%', maxWidth: 440,
+        padding: '13px 17px', borderRadius: 6,
+        border: `1px solid rgba(212,175,55,.22)`,
+        background: 'linear-gradient(135deg, rgba(12,12,18,.9) 0%, rgba(9,9,13,.9) 100%)',
+        backdropFilter: 'blur(12px)',
+        cursor: 'pointer', fontFamily: FM, fontSize: 13, color: T.text,
+        position: 'relative', overflow: 'hidden', textAlign: 'left',
+        transition: 'border-color .2s, box-shadow .2s',
+        boxShadow: '0 0 0 0.5px rgba(212,175,55,.08) inset',
+      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = T.healthy + '55'; (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 20px rgba(212,175,55,.12), 0 0 0 0.5px rgba(212,175,55,.12) inset`; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(212,175,55,.22)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 0 0.5px rgba(212,175,55,.08) inset'; }}
+      aria-label="Copy install command"
+    >
+      {/* shimmer sweep */}
+      <span aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(105deg, transparent 30%, rgba(212,175,55,.06) 50%, transparent 70%)', backgroundSize: '200%', animation: 'tos-shimmer 3s linear infinite', pointerEvents: 'none' }} />
+      <span style={{ color: T.healthy, marginRight: 12, userSelect: 'none' }}>$</span>
+      <span style={{ flex: 1, color: T.text }}>{cmd}</span>
+      <span className="tos-caret" style={{ display: 'inline-block', width: 7, height: 14, background: T.healthy, marginLeft: 4, verticalAlign: 'middle' }} />
+      <span style={{
+        marginLeft: 14, fontSize: 10, letterSpacing: '.08em',
+        color: copied ? T.healthy : T.faint,
+        transition: 'color .2s',
+        textTransform: 'uppercase',
+      }}>
+        {copied ? '✓ copied' : 'copy'}
+      </span>
+    </button>
+  );
+}
+
+/* ─── Hero ────────────────────────────────────────────────────────────────── */
+const HERO_STATS = [
+  { v: '3.5×',     l: 'recovery time delta', s: '2°C ambient · controlled · n=7' },
+  { v: '8,734',    l: 'telemetry rows',      s: 'Stage 1 complete · Tesla T4' },
+  { v: '100%',     l: 'classifier acc.',     s: 'Decision Tree + 15s window' },
+];
+
+function Hero() {
+  const heroRef = useRef<HTMLElement | null>(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const fadeOut = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+
+  useEffect(() => {
+    const root = heroRef.current;
+    if (!root || rm()) return;
+    animate(root.querySelectorAll('[data-h]'), {
+      opacity: [0, 1],
+      translateY: [16, 0],
+      duration: 720,
+      delay: stagger(80),
+      ease: 'outExpo',
+    });
+  }, []);
+
+  return (
+    <motion.section ref={heroRef} id="hero" style={{ position: 'relative', opacity: fadeOut }}>
+      {/* ── Full-width 3D GPU scene (lazy: streams in after first paint) ── */}
+      <div style={{ position: 'relative' }}>
+        <React.Suspense fallback={<div style={{ height: '90vh', background: T.bg }} aria-hidden />}>
+          <GPUHeroScene />
+        </React.Suspense>
+        {/* Top/bottom fades blend canvas into page bg */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, ${T.bg}, transparent)`, pointerEvents: 'none', zIndex: 5 }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 140, background: `linear-gradient(to bottom, transparent, ${T.bg})`, pointerEvents: 'none', zIndex: 5 }} />
+
+        {/* ── Left gradient — locks text legibility over any 3D content ── */}
+        <div aria-hidden style={{
+          position: 'absolute', top: 0, bottom: 0, left: 0,
+          width: '58%', pointerEvents: 'none', zIndex: 8,
+          background: 'linear-gradient(to right, rgba(6,6,10,1) 0%, rgba(6,6,10,0.92) 38%, rgba(6,6,10,0.5) 62%, transparent 100%)',
+        }} />
+
+        {/* ── LEFT TEXT PANEL overlaid on canvas ── */}
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: 'clamp(40px, 5.5%, 84px)',
+          transform: 'translateY(-50%)',
+          zIndex: 10,
+          maxWidth: 490,
+        }}>
+          <div data-h style={{ opacity: 0, marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <span className="tos-shimmer-wrap" style={{ display: 'inline-flex', borderRadius: 3 }}>
+              <Tag accent><Pulse />&nbsp;v0.1.9 live on PyPI</Tag>
+            </span>
+            <Tag>MIT licensed · single-node free forever</Tag>
+          </div>
+          <h1 data-h style={{
+            opacity: 0,
+            fontFamily: FD,
+            fontSize: 'clamp(34px,4.4vw,60px)',
+            fontWeight: 700,
+            letterSpacing: '-.04em',
+            lineHeight: 0.95,
+            marginBottom: 18,
+            position: 'relative',
+            paddingLeft: 20,
+            paddingTop: 12,
+            background: `linear-gradient(135deg, ${T.bg} 0%, ${T.s0} 50%, ${T.bg} 100%)`,
+            borderTop: `1px solid ${T.faint}`,
+            borderLeft: `1px solid ${T.faint}`,
+          }}>
+            {/* Corner bracket — lab-instrument style */}
+            <span style={{ position: 'absolute', top: 0, left: 0, width: 16, height: 16, border: `1px solid ${T.amber}`, borderRight: 'none', borderBottom: 'none' }} />
+            Thermal forensics<br />for <span className="tos-grad-text" style={{ fontFamily: "'Clash Display', 'Satoshi', Inter, system-ui, sans-serif", fontWeight: 600, letterSpacing: '-.03em' }}>GPU clusters.</span>
+          </h1>
+          <p data-h style={{
+            opacity: 0,
+            fontFamily: FD,
+            fontSize: 15,
+            lineHeight: 1.62,
+            color: '#9a9aaa',
+            maxWidth: 420,
+            marginBottom: 18,
+          }}>
+            Temperature alone is ambiguous — a hot GPU could be busy or failing.
+            Theta computes{' '}
+            <span style={{ fontFamily: FM, color: T.text, fontSize: 13.5 }}>R_θ = ΔT / P</span>{' '}
+            in real time from your DCGM telemetry.
+          </p>
+          <div data-h style={{ opacity: 0, marginBottom: 14 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              fontFamily: FM, fontSize: 10, letterSpacing: '.04em',
+              color: T.healthy, padding: '4px 10px', borderRadius: 4,
+              border: `1px solid ${T.healthy}30`,
+              background: `${T.healthy}08`,
+            }}>
+              ● Stage 1 complete · 3.5× recovery delta · n=7 · Tesla T4
+            </span>
+          </div>
+          <div data-h style={{ opacity: 0, marginBottom: 12 }}>
+            <InstallBlock />
+          </div>
+          <div data-h style={{ opacity: 0, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <a href="https://github.com/Asomisetty27/thermalos" target="_blank" rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 5, border: `1px solid ${T.borderHi}`, background: 'rgba(17,17,23,.85)', backdropFilter: 'blur(8px)', color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.muted)}
+              onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi)}>
+              <GithubIcon /> github
+            </a>
+            <a href="https://pypi.org/project/thermalos/" target="_blank" rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 5, border: `1px solid ${T.borderHi}`, background: 'rgba(17,17,23,.85)', backdropFilter: 'blur(8px)', color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.muted)}
+              onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi)}>
+              pypi
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* ── STATS ROW — sits below canvas ── */}
+      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px 80px' }}>
+        <div data-h style={{ opacity: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 2, borderRadius: 6, overflow: 'hidden', background: T.s2 }}>
+            {HERO_STATS.map((s) => (
+              <div key={s.l} style={{
+                background: T.s1,
+                border: `1px solid ${T.border}`,
+                padding: '20px 24px',
+                position: 'relative',
+                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.4)`,
+              }}>
+                {/* Calibration label */}
+                <div style={{ fontSize: 7.5, letterSpacing: '0.22em', color: T.amber, textTransform: 'uppercase', marginBottom: 12, opacity: 0.7 }}>
+                  ⬚ {s.l.substring(0, 3)}
+                </div>
+                <div style={{ fontFamily: FM, fontSize: 28, fontWeight: 600, letterSpacing: '-.02em', color: T.text, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                <div style={{ fontFamily: FM, fontSize: 9, color: T.healthy, marginTop: 6, letterSpacing: '.08em', textTransform: 'uppercase' }}>{s.l}</div>
+                <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, marginTop: 2, letterSpacing: '.02em' }}>{s.s}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+/* ─── Signal section ──────────────────────────────────────────────────────── */
+const STATE_TABLE = [
+  { state: 'clean_idle',          r: '1.28', sub: '±0.21',  pwr: '11.4W', util: '0%',  ps: 'P8', note: 'T_j lags cool junction' },
+  { state: 'under_load',          r: '0.72', sub: '±0.08',  pwr: '68.0W', util: '97%', ps: 'P0', note: 'thermal equilibrium' },
+  { state: 'zombie_recovery',     r: '1.54', sub: '±0.05',  pwr: '31.6W', util: '0%',  ps: 'P0', note: 'CUDA context retained' },
+  { state: 'child_exit_recovery', r: '2.04', sub: '±0.46',  pwr: '12.6W', util: '0%',  ps: '~P8', note: 'T_j lags power drop' },
+];
+
+function Signal() {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.2 });
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-r]'), { opacity: [0, 1], translateY: [14, 0], duration: 680, delay: stagger(65), ease: 'outExpo' });
+  }, [inView]);
+
+  return (
+    <section ref={ref} id="signal" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <GradientOrbs variant="blue" />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 72, alignItems: 'start' }} className="tos-two-col">
+          <div>
+            <div data-r style={{ opacity: 0, marginBottom: 16 }}>
+              <SectionHead eyebrow="The Signal" title={<>One equation.<br />Four states.<br />Zero hardware.</>}
+                body="DCGM exposes T_junction and P_GPU as separate fields and never divides them. R_θ is the one derived quantity every telemetry stack has the ingredients for — and no incumbent computes it." />
+            </div>
+            <div data-r style={{ opacity: 0, marginTop: 28 }}>
+              <Panel label="Why utilization fails" style={{ marginTop: 0 }}>
+                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    ['zombie_recovery', '0%', '31W', 'CUDA zombie — invisible to util'],
+                    ['child_exit_recovery', '0%', '13W', 'clean recovery — invisible to util'],
+                    ['clean_idle', '0%', '11W', 'true idle'],
+                  ].map(([state, util, pwr, note]) => (
+                    <div key={state} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center', padding: '7px 0', borderBottom: `1px solid ${T.border}` }}>
+                      <span style={{ fontFamily: FM, fontSize: 10.5, color: T.muted }}>{note}</span>
+                      <span style={{ fontFamily: FM, fontSize: 10.5, color: T.text, fontVariantNumeric: 'tabular-nums' }}>util={util}</span>
+                      <span style={{ fontFamily: FM, fontSize: 10.5, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{pwr}</span>
+                    </div>
+                  ))}
+                  <p style={{ fontFamily: FM, fontSize: 9.5, color: T.faint, lineHeight: 1.7, marginTop: 4 }}>
+                    Three states, identical utilization readings. R_θ separates all three.
+                  </p>
+                </div>
+              </Panel>
+            </div>
+          </div>
+          <div data-r style={{ opacity: 0 }}>
+            <Panel label="Rθeff · Formula + Class-Conditional Means · Naive Bayes" corner={<Tag accent>NB acc 99.9%</Tag>}>
+              <div style={{ padding: '20px 18px' }}>
+                {/* Formula display — clean, no glow */}
+                <div style={{ borderRadius: 4, border: `1px solid ${T.border}`, background: T.s0, padding: '20px 24px', marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg viewBox="0 0 400 80" style={{ width: '100%', maxWidth: 380, display: 'block' }} aria-label="R theta eff formula">
+                    <text x="0" y="46" fontFamily={FM} fontSize="22" fill={T.text}>R</text>
+                    <text x="14" y="54" fontFamily={FM} fontSize="10" fill={T.muted}>θ,eff</text>
+                    <text x="48" y="46" fontFamily={FM} fontSize="17" fill={T.muted}>(t)</text>
+                    <text x="80" y="46" fontFamily={FM} fontSize="20" fill={T.text}>=</text>
+                    <text x="196" y="32" textAnchor="middle" fontFamily={FM} fontSize="15" fill={T.text}>
+                      T<tspan fontSize="9" baselineShift="-30%" fill={T.muted}>junction</tspan>
+                      <tspan dx="6">−</tspan>
+                      <tspan dx="6">T<tspan fontSize="9" baselineShift="-30%" fill={T.muted}>ref</tspan></tspan>
+                    </text>
+                    <line x1="106" y1="42" x2="286" y2="42" stroke={T.borderHi} strokeWidth="0.7" />
+                    <text x="196" y="66" textAnchor="middle" fontFamily={FM} fontSize="15" fill={T.text}>
+                      P<tspan fontSize="9" baselineShift="-30%" fill={T.muted}>GPU</tspan>(t)
+                    </text>
+                    <text x="302" y="50" fontFamily={FM} fontSize="11" fill={T.faint}>[ °C/W ]</text>
+                  </svg>
+                </div>
+                {/* State table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FM, fontSize: 11 }}>
+                  <thead>
+                    <tr style={{ background: T.s0 }}>
+                      {['STATE', 'R_θ (μ±σ)', 'POWER', 'UTIL', 'P-STATE', 'INTERPRETATION'].map(h => (
+                        <th key={h} style={{ borderBottom: `1px solid ${T.border}`, padding: '7px 8px', textAlign: 'left', fontWeight: 400, fontSize: 9, letterSpacing: '.12em', color: T.faint, textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {STATE_TABLE.map((row, i) => (
+                      <tr key={row.state}
+                        className="tos-state-row"
+                        style={{ background: i % 2 === 0 ? 'transparent' : T.s0, transition: 'background .2s' }}>
+                        <td style={{ padding: '9px 8px', color: T.text, borderBottom: `1px solid ${T.border}`, fontSize: 10.5 }}>{row.state}</td>
+                        <td style={{ padding: '9px 8px', color: T.healthy, borderBottom: `1px solid ${T.border}`, fontVariantNumeric: 'tabular-nums', fontSize: 12, fontWeight: 500 }}>
+                          {row.r}<span style={{ color: T.faint, fontWeight: 400, fontSize: 10 }}> {row.sub}</span>
+                        </td>
+                        <td style={{ padding: '9px 8px', color: T.muted, borderBottom: `1px solid ${T.border}`, fontVariantNumeric: 'tabular-nums' }}>{row.pwr}</td>
+                        <td style={{ padding: '9px 8px', color: T.muted, borderBottom: `1px solid ${T.border}` }}>{row.util}</td>
+                        <td style={{ padding: '9px 8px', color: T.muted, borderBottom: `1px solid ${T.border}` }}>{row.ps}</td>
+                        <td style={{ padding: '9px 8px', color: T.faint, borderBottom: `1px solid ${T.border}`, fontSize: 10 }}>{row.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Evidence section ────────────────────────────────────────────────────── */
+/*
+ * Shows the thermal-memory finding from the 7-trial E004 rerun:
+ * trials 1–2 (cool start) vs 3–7 (warm start) produce different R_theta.
+ * Visualized as horizontal bars — no glow, just fill + border.
+ */
+const E004_TRIALS = [
+  { t: 1, start: 43, loadR: 0.442, recR: 2.28,  pwrRec: 36.6, group: 'A' as const },
+  { t: 2, start: 39, loadR: 0.426, recR: 2.69,  pwrRec: 24.5, group: 'A' as const },
+  { t: 3, start: 49, loadR: 0.601, recR: 3.13,  pwrRec: 26.5, group: 'B' as const },
+  { t: 4, start: 49, loadR: 0.587, recR: 3.15,  pwrRec: 25.5, group: 'B' as const },
+  { t: 5, start: 49, loadR: 0.596, recR: 3.12,  pwrRec: 21.4, group: 'B' as const },
+  { t: 6, start: 49, loadR: 0.590, recR: 3.11,  pwrRec: 12.3, group: 'B' as const },
+  { t: 7, start: 48, loadR: 0.570, recR: 3.10,  pwrRec: 10.3, group: 'B' as const },
+];
+
+/* v2 trials — 1800s wait protocol. All trials completed 2026-06-05.
+ * T1+T2 at 37°C (cold-start cohort, fresh Colab session).
+ * T3 disconnected mid-gate.
+ * T4-T8 at 39°C (warm-start cohort, neighbor-tenant warming).
+ * The 2°C cohort delta produces a 3.5× recovery-time difference. */
+type V2Trial = { t: number; start: number; pwrRec: number | null; pstateRec: number | null; status?: 'disconnect' };
+const E004_V2_TRIALS: V2Trial[] = [
+  { t: 1, start: 37, pwrRec: 3.2,  pstateRec: 3.0 },
+  { t: 2, start: 37, pwrRec: 5.2,  pstateRec: 5.1 },
+  { t: 3, start: 41, pwrRec: null, pstateRec: null, status: 'disconnect' },
+  { t: 4, start: 39, pwrRec: 15.4, pstateRec: 2.0 },
+  { t: 5, start: 39, pwrRec: 16.3, pstateRec: 5.1 },
+  { t: 6, start: 39, pwrRec: 14.3, pstateRec: 5.1 },
+  { t: 7, start: 39, pwrRec: 14.3, pstateRec: 5.1 },
+  { t: 8, start: 39, pwrRec: 13.3, pstateRec: 5.1 },
+];
+
+function TrialChart({ metric, max, label, unit }: {
+  metric: 'loadR' | 'recR';
+  max: number;
+  label: string;
+  unit: string;
+}) {
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(barRef, { once: true, amount: 0.3 });
+
+  useEffect(() => {
+    const root = barRef.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-bar]'), {
+      scaleX: [0, 1],
+      opacity: [0.2, 1],
+      duration: 580,
+      delay: stagger(55),
+      ease: 'outExpo',
+    });
+  }, [inView]);
+
+  return (
+    <div ref={barRef}>
+      <div style={{ fontFamily: FM, fontSize: 9.5, color: T.faint, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 12 }}>{label}</div>
+      {E004_TRIALS.map(tr => {
+        const val = tr[metric];
+        const pct = (val / max) * 100;
+        const isA = tr.group === 'A';
+        const barColor = isA ? T.bp : T.healthy;
+        return (
+          <div key={tr.t} style={{ display: 'grid', gridTemplateColumns: '48px 1fr 52px', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ fontFamily: FM, fontSize: 10, color: isA ? T.bp : T.muted }}>T{tr.t} · {tr.start}°</span>
+            <div style={{ height: 18, background: T.s3, borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
+              <div
+              data-bar
+              title={`Trial ${tr.t} · start ${tr.start}°C · ${metric === 'loadR' ? 'load' : 'recovery'} R_θ = ${val.toFixed(4)} C/W · power recovery ${tr.pwrRec}s`}
+              style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: barColor, borderRadius: 2, transformOrigin: 'left center', cursor: 'help', transition: 'filter .15s' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.filter = 'brightness(1.25)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.filter = 'brightness(1)')}
+            />
+            </div>
+            <span style={{ fontFamily: FM, fontSize: 11, color: T.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{val.toFixed(3)}{unit}</span>
+          </div>
+        );
+      })}
+      <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
+        <span style={{ color: T.bp }}>■</span> Group A (cool start, 39–43°C) &nbsp;
+        <span style={{ color: T.healthy }}>■</span> Group B (warm start, 48–49°C)
+      </div>
+    </div>
+  );
+}
+
+/* v2 power-recovery comparison chart — v1 vs v2 side-by-side bars */
+function V2PowerRecoveryChart() {
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(barRef, { once: true, amount: 0.3 });
+  const MAX = 40;  // axis max in seconds
+
+  useEffect(() => {
+    const root = barRef.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-bar]'), {
+      scaleX: [0, 1],
+      opacity: [0.2, 1],
+      duration: 620,
+      delay: stagger(45),
+      ease: 'outExpo',
+    });
+  }, [inView]);
+
+  return (
+    <div ref={barRef}>
+      <div style={{ fontFamily: FM, fontSize: 9.5, color: T.faint, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 14 }}>
+        Power recovery time (s) · v1 vs v2 · lower is better
+      </div>
+
+      {/* v1 row — completed reference */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontFamily: FM, fontSize: 10, color: T.bp, marginBottom: 6 }}>v1 · 60s cooldown · 7 trials</div>
+        {E004_TRIALS.map(tr => {
+          const pct = (tr.pwrRec / MAX) * 100;
+          return (
+            <div key={`v1-${tr.t}`} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 48px', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ fontFamily: FM, fontSize: 9.5, color: T.faint }}>T{tr.t}</span>
+              <div style={{ height: 12, background: T.s3, borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
+                <div data-bar
+                  title={`v1 T${tr.t} · start ${tr.start}°C · power recovery ${tr.pwrRec}s`}
+                  style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: T.bp, borderRadius: 2, transformOrigin: 'left center', cursor: 'help' }} />
+              </div>
+              <span style={{ fontFamily: FM, fontSize: 10.5, color: T.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{tr.pwrRec}s</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* v2 row — complete dataset, two thermal-start cohorts */}
+      <div>
+        <div style={{ fontFamily: FM, fontSize: 10, color: T.healthy, marginBottom: 6 }}>
+          v2 · 1800s wait · 7 successful trials &nbsp;
+          <span style={{ color: T.healthy, fontSize: 9, letterSpacing: '.06em' }}>
+            <span style={{ display: 'inline-block', width: 5, height: 5, background: T.healthy, borderRadius: '50%', marginRight: 4, verticalAlign: 'middle' }} />
+            complete · 2026-06-05
+          </span>
+        </div>
+        {E004_V2_TRIALS.map(tr => {
+          const hasData = tr.pwrRec !== null;
+          const pct = hasData ? (tr.pwrRec! / MAX) * 100 : 0;
+          const isDisconnect = tr.status === 'disconnect';
+          const cohortColor = hasData && tr.start <= 37 ? T.bp : T.healthy;
+          return (
+            <div key={`v2-${tr.t}`} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 48px', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ fontFamily: FM, fontSize: 9.5, color: hasData ? cohortColor : T.faint }}>T{tr.t}</span>
+              <div style={{
+                height: 12, background: T.s3, borderRadius: 2, overflow: 'hidden', position: 'relative',
+                border: isDisconnect ? `1px dashed ${T.faint}88` : 'none',
+              }}>
+                {hasData ? (
+                  <div data-bar
+                    title={`v2 T${tr.t} · start ${tr.start}°C · power recovery ${tr.pwrRec}s`}
+                    style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: cohortColor, borderRadius: 2, transformOrigin: 'left center', cursor: 'help' }} />
+                ) : (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    fontFamily: FM, fontSize: 9, color: T.faint,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    letterSpacing: '.08em', textTransform: 'uppercase',
+                  }}>disconnect</div>
+                )}
+              </div>
+              <span style={{ fontFamily: FM, fontSize: 10.5, color: hasData ? T.text : T.faint, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {hasData ? `${tr.pwrRec}s` : '—'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}`, lineHeight: 1.6 }}>
+        v2 cold-start (37°C, n=2): <span style={{ color: T.bp }}>4.2s</span>. v2 warm-start (39°C, n=5): <span style={{ color: T.healthy }}>14.7s ± 1.1s</span>.&nbsp;
+        <span style={{ color: T.healthy, fontWeight: 600 }}>2°C ambient delta → 3.5× recovery time difference.</span>&nbsp;
+        Single-variable controlled experiment. Within-condition T&lt;55°C CV: 1.8%.
+      </div>
+    </div>
+  );
+}
+
+function Evidence() {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-e]'), { opacity: [0, 1], translateY: [14, 0], duration: 680, delay: stagger(70), ease: 'outExpo' });
+  }, [inView]);
+
+  return (
+    <section ref={ref} id="evidence" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <GradientOrbs variant="green" />
+      <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3, zIndex: 1 }} />
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+        <div data-e style={{ opacity: 0, marginBottom: 48 }}>
+          <SectionHead eyebrow="Stage 1 Evidence · controlled-variable thermal memory" title={<>2°C ambient delta<br /><span className="tos-grad-text">3.5× recovery</span> time difference.<br />n=7 trials, single-variable design.</>}
+            body="E004 v2 (2026-06-05, 7 successful trials at two thermal-start conditions): 1800s pre-trial wait + uniform start temperature within each cohort. Cold-start cohort (37°C, n=2): 4.2s power recovery. Warm-start cohort (39°C, n=5): 14.7s ± 1.1s. Within-condition reproducibility T<55°C CV 1.8%, T<42°C CV 1.6% — publication-grade. Same hardware, same workload. The thermal memory effect F1 hypothesized is now demonstrated with a designed experiment." />
+        </div>
+        {/* Evidence grid: custom named areas */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto auto', gap: 16 }} className="tos-evidence-grid">
+          {/* Top left: load R_theta bars */}
+          <div data-e style={{ opacity: 0 }}>
+            <Panel glass label="Under-load R_θ · E004 v1 · 7 trials">
+              <div style={{ padding: '16px 18px' }}>
+                <TrialChart metric="loadR" max={0.8} label="Load R_theta (C/W)" unit=" C/W" />
+              </div>
+            </Panel>
+          </div>
+          {/* Top right: recovery R_theta bars */}
+          <div data-e style={{ opacity: 0 }}>
+            <Panel glass label="Recovery R_θ · post child-exit · 7 trials">
+              <div style={{ padding: '16px 18px' }}>
+                <TrialChart metric="recR" max={3.6} label="Recovery R_theta (C/W)" unit=" C/W" />
+              </div>
+            </Panel>
+          </div>
+          {/* Middle row: v2 power-recovery comparison */}
+          <div data-e style={{ opacity: 0, gridColumn: '1 / -1' }}>
+            <Panel glass label="F1 dim-2 · controlled-variable: 2°C start-temp delta → 3.5× recovery time">
+              <div style={{ padding: '18px 20px' }}>
+                <V2PowerRecoveryChart />
+              </div>
+            </Panel>
+          </div>
+          {/* Bottom: key numbers — prominent glass card */}
+          <div data-e style={{ opacity: 0, gridColumn: '1 / -1' }}>
+            <div className="tos-glass" style={{ borderRadius: 6, border: '1px solid rgba(212,175,55,.15)', overflow: 'hidden' }}>
+              <div style={{ padding: '9px 14px', borderBottom: '1px solid rgba(212,175,55,.1)', background: 'rgba(212,175,55,.04)' }}>
+                <span style={{ fontFamily: FM, fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase', color: T.faint }}>Key numbers · thermal memory demonstration</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 0 }}>
+                {[
+                  { v: '3.5×',  l: 'recovery delta',    s: '2°C ambient · controlled (F1)' },
+                  { v: '1.8%',  l: 'within-group CV',   s: 'T<55°C · warm-start cohort n=5' },
+                  { v: '35%',   l: 'R_θ delta',         s: 'cool vs warm start temp (F1)' },
+                  { v: '14',    l: 'child-exit trials',  s: 'v1 (7) + v2 (7 successful)' },
+                  { v: '8,734', l: 'telemetry rows',    s: 'Stage 1 complete · Tesla T4' },
+                ].map((k, i) => (
+                  <div key={k.l} style={{ padding: '18px 20px', borderLeft: i > 0 ? `1px solid rgba(255,255,255,.05)` : 'none' }}>
+                    <div style={{ fontFamily: FD, fontSize: 30, fontWeight: 600, letterSpacing: '-.03em', fontVariantNumeric: 'tabular-nums', background: 'linear-gradient(135deg, #e8e8f0 0%, #D4AF37 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{k.v}</div>
+                    <div style={{ fontFamily: FM, fontSize: 10, color: T.text, marginTop: 5 }}>{k.l}</div>
+                    <div style={{ fontFamily: FM, fontSize: 9.5, color: T.faint, marginTop: 2 }}>{k.s}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Features grid (named-area layout) ──────────────────────────────────── */
+function FeaturesGrid() {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.1 });
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-f]'), { opacity: [0, 1], translateY: [12, 0], duration: 640, delay: stagger(60), ease: 'outExpo' });
+  }, [inView]);
+
+  return (
+    <section ref={ref} id="features" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <GradientOrbs variant="blue" />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+        <div data-f style={{ opacity: 0, marginBottom: 48 }}>
+          <SectionHead eyebrow="Capabilities" title={<>Built for fleets<br />NVIDIA won&apos;t serve.</>}
+            body="Mission Control ships only on Blackwell DGX/GB200 systems. The long tail of mixed-vendor, older-gen neocloud fleets is structurally out of reach. That's the lane." />
+        </div>
+        {/* 12-column named-area bento */}
+        <div className="tos-features-grid" style={{ display: 'grid', gap: 12 }}>
+          {/* Row 1: drift (7) + zombie (5) */}
+          <div data-f className="tos-feat-drift" style={{ opacity: 0 }}>
+            <FeatureCard title="Drift detection, not thresholds" index="01">
+              <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 16 }}>
+                <span style={{ fontFamily: FM, color: T.text }}>baseline_mean + k·σ</span>{' '}
+                sustained over a steady-state window. Flags cooling degradation relative to the GPU's own healthy baseline — no hard-coded absolutes that go stale by generation.
+              </p>
+              <DriftViz />
+            </FeatureCard>
+          </div>
+          <div data-f className="tos-feat-zombie" style={{ opacity: 0 }}>
+            <FeatureCard title="Zombie-GPU detection (F6)" index="02" tone="critical">
+              <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 14 }}>
+                CUDA context retention keeps GPUs drawing 30–31W at 0% utilization. Invisible to DCGM. R_θ catches the stuck P-state directly.
+              </p>
+              <Codeblock lines={[
+                { p: '!', t: 'GPU 2 · stuck P0', tone: 'critical' },
+                { p: '·', t: 'util=0% · P=31.2W · ΔT=41°C' },
+                { p: '·', t: 'R_θ=1.54 · expected ≤0.80' },
+                { p: '→', t: 'release CUDA context', tone: 'caution' },
+              ]} />
+            </FeatureCard>
+          </div>
+          {/* Row 2: ambient (4) + cross-vendor (4) + oss (4) */}
+          <div data-f className="tos-feat-ambient" style={{ opacity: 0 }}>
+            <FeatureCard title="Virtual ambient" index="03">
+              <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 14 }}>
+                T_reference derived from the GPU's own idle windows. No thermocouples, no rack mods.
+              </p>
+              <Codeblock lines={[
+                { p: '>', t: 'thermalos baseline --gpu 0' },
+                { p: '·', t: 'T_ref locked @ 41.2°C σ=0.18' },
+                { p: '✓', t: 'no thermocouple required', tone: 'healthy' },
+              ]} />
+            </FeatureCard>
+          </div>
+          <div data-f className="tos-feat-vendor" style={{ opacity: 0 }}>
+            <FeatureCard title="Cross-vendor" index="04">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {[
+                  { v: 'NVIDIA', p: 'DCGM / pynvml',  s: 'live',         c: T.healthy },
+                  { v: 'AMD',    p: 'ROCm / amd-smi', s: 'v1 · q4 2026', c: T.caution },
+                  { v: 'Intel',  p: 'oneAPI / xpu-smi', s: 'scoped',       c: T.faint },
+                ].map(row => (
+                  <div key={row.v} style={{ display: 'flex', justifyContent: 'space-between', borderRadius: 3, border: `1px solid ${T.border}`, background: T.s2, padding: '7px 10px', fontFamily: FM, fontSize: 11 }}>
+                    <span style={{ display: 'flex', gap: 8 }}>
+                      <span style={{ color: T.text }}>{row.v}</span>
+                      <span style={{ color: T.faint }}>{row.p}</span>
+                    </span>
+                    <span style={{ color: row.c }}>{row.s}</span>
+                  </div>
+                ))}
+              </div>
+            </FeatureCard>
+          </div>
+          <div data-f className="tos-feat-oss" style={{ opacity: 0 }}>
+            <FeatureCard title="OSS agent — single node free" index="05" tone="healthy">
+              <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 14 }}>
+                <span style={{ fontFamily: FM, color: T.text }}>pip install runtheta</span> — 60 seconds to first R_θ reading.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {['Free · single node · live readout', 'Paid · fleet dashboard + alerts', 'Paid · cross-node correlation'].map((f, i) => (
+                  <div key={f} style={{ display: 'flex', gap: 8, alignItems: 'center', fontFamily: FM, fontSize: 10.5, color: T.muted }}>
+                    <span style={{ color: i === 0 ? T.healthy : T.faint, fontSize: 9 }}>▶</span>
+                    {f}
+                  </div>
+                ))}
+              </div>
+            </FeatureCard>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FeatureCard({ title, index, tone, children }: {
+  title: string;
+  index: string;
+  tone?: 'critical' | 'healthy';
+  children: React.ReactNode;
+}) {
+  const accent = tone === 'critical' ? T.critical : tone === 'healthy' ? T.healthy : T.bp;
+  return (
+    <div className="tos-feat-card tos-shimmer-wrap" style={{
+      height: '100%',
+      border: `1px solid ${T.border}`,
+      borderTop: `1.5px solid ${accent}55`,
+      borderRadius: 6,
+      background: `linear-gradient(160deg, ${T.s1} 0%, ${T.s0} 100%)`,
+      overflow: 'hidden',
+      position: 'relative',
+    }}>
+      {/* Subtle gradient tint behind the top edge */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 80, background: `radial-gradient(ellipse 60% 60% at 50% -20%, ${accent}0D, transparent)`, pointerEvents: 'none' }} />
+      <div style={{ padding: 22, position: 'relative' }}>
+        <div className="tos-feat-index" style={{ fontFamily: FM, fontSize: 9.5, color: accent, letterSpacing: '.12em', marginBottom: 10, transition: 'color .2s' }}>{index} · CAPABILITY</div>
+        <h3 style={{ fontFamily: FD, fontSize: 17, fontWeight: 500, letterSpacing: '-.01em', color: T.text, marginBottom: 14 }}>{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function DriftViz() {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.5 });
+  const samples = [40, 40, 41, 41, 42, 43, 44, 46, 50, 56, 64, 74, 82, 90];
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-bar]'), { scaleY: [0, 1], opacity: [0.15, 1], duration: 580, delay: stagger(28), ease: 'outExpo' });
+  }, [inView]);
+  return (
+    <div ref={ref} style={{ borderRadius: 4, border: `1px solid ${T.border}`, background: T.s2, padding: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+        <span style={{ fontFamily: FM, fontSize: 9.5, color: T.faint }}>R_θ · 14-sample window</span>
+        <span style={{ fontFamily: FM, fontSize: 9.5, color: T.rising }}>+38% drift detected</span>
+      </div>
+      <div style={{ position: 'relative', height: 70 }}>
+        <svg viewBox="0 0 280 70" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, height: '100%', width: '100%' }}>
+          <line x1="0" y1={70 - 50} x2="280" y2={70 - 50} stroke={T.caution} strokeWidth="0.7" strokeDasharray="3 2" opacity="0.5" />
+          <line x1="0" y1={70 - 42} x2="280" y2={70 - 42} stroke={T.healthy} strokeWidth="0.7" strokeDasharray="2 2" opacity="0.4" />
+          {samples.map((v, i) => {
+            const c = v > 80 ? T.critical : v > 60 ? T.rising : v > 48 ? T.caution : T.healthy;
+            return <rect data-bar key={i} x={4 + i * 20} y={70 - v} width={13} height={v} fill={c} opacity="0.9" rx="1" style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }} />;
+          })}
+        </svg>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+        <span style={{ fontFamily: FM, fontSize: 9, color: T.faint }}>baseline 0.72</span>
+        <span style={{ fontFamily: FM, fontSize: 9, color: T.faint }}>k·σ alert</span>
+        <span style={{ fontFamily: FM, fontSize: 9, color: T.critical }}>1.85 critical</span>
+      </div>
+    </div>
+  );
+}
+
+function Codeblock({ lines }: { lines: Array<{ p: string; t: string; tone?: string }> }) {
+  const toneColor: Record<string, string> = { healthy: T.healthy, critical: T.critical, caution: T.caution };
+  return (
+    <div style={{ borderRadius: 4, border: `1px solid ${T.border}`, background: T.s0, padding: '11px 13px', fontFamily: FM, fontSize: 11, lineHeight: 1.7 }}>
+      {lines.map((l, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8 }}>
+          <span style={{ color: l.tone ? toneColor[l.tone] : T.faint, width: 12, flexShrink: 0 }}>{l.p}</span>
+          <span style={{ color: l.tone ? toneColor[l.tone] : T.muted }}>{l.t}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Competitor table ────────────────────────────────────────────────────── */
+type Mark = 'yes' | 'no' | 'partial';
+const CMP_COLS = ['DCGM', 'Mission Control', 'Phaidra', 'In-house', 'Theta'];
+const CMP_ROWS: { cap: string; cells: Mark[] }[] = [
+  { cap: 'Exposes T_junction + P_GPU',         cells: ['yes', 'yes', 'partial', 'partial', 'yes'] },
+  { cap: 'Computes R_θ (ΔT / P)',              cells: ['no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Separates busy-hot vs failing-hot',  cells: ['no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Drift detector (baseline + k·σ)',    cells: ['no', 'no', 'partial', 'no', 'yes'] },
+  { cap: 'CUDA-context aware (zombie GPU)',     cells: ['no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Cross-vendor (NVIDIA + AMD)',         cells: ['no', 'no', 'partial', 'partial', 'yes'] },
+  { cap: 'Virtual ambient (zero hardware)',     cells: ['no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Serves neocloud / mixed fleets',     cells: ['yes', 'no', 'no', 'partial', 'yes'] },
+  { cap: 'Open-source agent',                  cells: ['yes', 'no', 'no', 'no', 'yes'] },
+];
+
+function MarkCell({ m, us }: { m: Mark; us: boolean }) {
+  if (m === 'yes') return <span style={{ fontFamily: FM, fontSize: us ? 14 : 12, color: us ? T.healthy : T.muted, fontWeight: us ? 600 : 400 }}>●</span>;
+  if (m === 'no')  return <span style={{ fontFamily: FM, fontSize: 12, color: T.faint }}>○</span>;
+  return <span style={{ fontFamily: FM, fontSize: 12, color: T.caution }}>◐</span>;
+}
+
+function CompetitorTable() {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-c]'), { opacity: [0, 1], translateY: [12, 0], duration: 640, delay: stagger(65), ease: 'outExpo' });
+  }, [inView]);
+  const us = CMP_COLS.length - 1;
+  return (
+    <section ref={ref} id="gap" style={{ borderTop: `1px solid ${T.border}` }}>
+      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+        <div data-c style={{ opacity: 0, marginBottom: 48 }}>
+          <SectionHead eyebrow="The Gap" title={<>NVIDIA ships three<br />telemetry products.<br />None compute R<sub>θ</sub>.</>}
+            body="DCGM, Mission Control, and NVIDIA's newest fleet agent all expose T and P as separate fields. The ratio — the signal — is absent from every incumbent." />
+        </div>
+        <div data-c style={{ opacity: 0 }}>
+          <Panel label="Capability matrix · 2026-06">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FM, fontSize: 11.5 }}>
+                <thead>
+                  <tr>
+                    <th style={{ borderBottom: `1px solid ${T.border}`, padding: '14px 20px', textAlign: 'left', fontWeight: 400, fontSize: 9.5, color: T.faint, textTransform: 'uppercase', letterSpacing: '.12em' }}>CAPABILITY</th>
+                    {CMP_COLS.map((c, i) => (
+                      <th key={c} style={{ borderBottom: `1px solid ${i === us ? T.healthy : T.border}`, padding: '14px 12px', textAlign: 'center', fontWeight: 400, fontSize: 9.5, color: i === us ? T.healthy : T.faint, background: i === us ? T.healthy + '08' : 'transparent', textTransform: 'uppercase', letterSpacing: '.1em' }}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {CMP_ROWS.map((row, ri) => (
+                    <tr key={row.cap} style={{ background: ri % 2 === 1 ? T.s0 : 'transparent' }}>
+                      <td style={{ borderBottom: `1px solid ${T.border}`, padding: '12px 20px', color: T.text }}>{row.cap}</td>
+                      {row.cells.map((m, ci) => (
+                        <td key={ci} style={{ borderBottom: `1px solid ${ci === us ? T.healthy + '44' : T.border}`, padding: '12px', textAlign: 'center', background: ci === us ? T.healthy + '06' : 'transparent' }}>
+                          <MarkCell m={m} us={ci === us} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ borderTop: `1px solid ${T.border}`, padding: '12px 20px', display: 'flex', gap: 20 }}>
+              {[{ m: 'yes' as Mark, l: 'shipped' }, { m: 'partial' as Mark, l: 'partial' }, { m: 'no' as Mark, l: 'absent' }].map(({ m, l }) => (
+                <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FM, fontSize: 10, color: T.faint }}>
+                  <MarkCell m={m} us={false} /> {l}
+                </span>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Pricing ─────────────────────────────────────────────────────────────── */
+const PRICING_FEATS = ['Fleet R_θ dashboard', 'Drift alerts + incident log', 'Cross-node correlation', 'Power-cap optimization', 'Telemetry dataset access', 'Priority Slack support'];
+
+function useCountUp(value: number, fmt: (n: number) => string) {
+  const el = useRef<HTMLDivElement | null>(null);
+  const prev = useRef(value);
+  useEffect(() => {
+    const node = el.current;
+    if (!node) return;
+    if (rm()) { node.textContent = fmt(value); prev.current = value; return; }
+    const state = { v: prev.current };
+    animate(state, { v: value, duration: 380, ease: 'outCubic', onUpdate: () => { node.textContent = fmt(state.v); }, onComplete: () => { prev.current = value; node.textContent = fmt(value); } });
+  }, [value, fmt]);
+  return el;
+}
+
+function Pricing() {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.2 });
+  const [annual, setAnnual] = useState(true);
+  const [gpus, setGpus] = useState(80);
+  const { price, period, saved } = useMemo(() => {
+    const mo = gpus * 4;
+    if (annual) { const yr = Math.round(mo * 12 * 0.75); return { price: yr, period: 'year', saved: mo * 12 - yr }; }
+    return { price: mo, period: 'month', saved: 0 };
+  }, [annual, gpus]);
+  const fmt = useCallback((n: number) => `$${Math.round(n).toLocaleString()}`, []);
+  const priceRef = useCountUp(price, fmt);
+
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-p]'), { opacity: [0, 1], translateY: [12, 0], duration: 640, delay: stagger(60), ease: 'outExpo' });
+  }, [inView]);
+
+  return (
+    <section ref={ref} id="pricing" style={{ borderTop: `1px solid ${T.border}` }}>
+      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+        <div data-p style={{ opacity: 0, marginBottom: 48, textAlign: 'center' }}>
+          <SectionHead center eyebrow="Pricing" title="Free forever for one node."
+            body="Fleet dashboard and alerting for operators managing multiple GPUs. No signup until you scale." />
+        </div>
+        <div data-p style={{ opacity: 0, maxWidth: 460, margin: '0 auto' }}>
+          <Panel label="Fleet tier · interactive">
+            <div style={{ padding: 22 }}>
+              {/* Toggle */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+                <div>
+                  <div style={{ fontFamily: FD, fontSize: 13.5, fontWeight: 500, color: T.text }}>Fleet tier</div>
+                  <div style={{ fontFamily: FM, fontSize: 9.5, color: T.faint, marginTop: 3 }}>single-node agent is always free</div>
+                </div>
+                <div style={{ display: 'flex', borderRadius: 4, border: `1px solid ${T.border}`, background: T.s2, padding: 2, gap: 2 }}>
+                  {[{ l: 'monthly', v: false }, { l: 'annual', v: true }].map(o => (
+                    <button key={o.l} onClick={() => setAnnual(o.v)}
+                      style={{ borderRadius: 3, padding: '5px 10px', border: 'none', cursor: 'pointer', background: annual === o.v ? T.s1 : 'transparent', color: annual === o.v ? T.text : T.muted, fontFamily: FM, fontSize: 10, letterSpacing: '.03em', transition: 'background .15s, color .15s' }}>
+                      {o.l}{o.v && <span style={{ color: T.healthy, marginLeft: 4 }}>−25%</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Slider */}
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+                  <span style={{ fontFamily: FM, fontSize: 9.5, color: T.faint }}>GPU count</span>
+                  <span style={{ fontFamily: FM, fontSize: 12, fontWeight: 500, fontVariantNumeric: 'tabular-nums', color: T.text }}>{gpus} GPUs</span>
+                </div>
+                <input type="range" min={10} max={500} step={10} value={gpus} onChange={e => setGpus(+e.target.value)}
+                  className="tos-range"
+                  style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', height: 2, background: `linear-gradient(to right,${T.healthy} ${((gpus - 10) / 490) * 100}%,${T.border} 0)`, borderRadius: 1, outline: 'none', cursor: 'pointer' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+                  <span style={{ fontFamily: FM, fontSize: 9, color: T.faint }}>10</span>
+                  <span style={{ fontFamily: FM, fontSize: 9, color: T.faint }}>500+</span>
+                </div>
+              </div>
+              {/* Price */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginBottom: 20, borderTop: `1px solid ${T.border}`, paddingTop: 20 }}>
+                <div ref={priceRef} style={{ fontFamily: FD, fontSize: 48, fontWeight: 500, letterSpacing: '-.035em', lineHeight: 1, color: T.text }}>{fmt(price)}</div>
+                <div style={{ paddingBottom: 5 }}>
+                  <div style={{ fontFamily: FM, fontSize: 10, color: T.muted }}>/ {period}</div>
+                  {annual && saved > 0 && <div style={{ fontFamily: FM, fontSize: 9.5, color: T.healthy }}>saves ${saved.toLocaleString()}/yr</div>}
+                </div>
+              </div>
+              {/* Features */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px 16px', marginBottom: 18 }}>
+                {PRICING_FEATS.map(f => (
+                  <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: FM, fontSize: 10.5, color: T.muted }}>
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: T.healthy, flexShrink: 0, display: 'inline-block' }} />
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <a href="mailto:asomisetty27@gmail.com?subject=Theta fleet tier"
+                style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 11, borderRadius: 4, background: T.healthy, color: '#1A1408', fontFamily: FD, fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'opacity .15s' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '0.87')}
+                onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '1')}>
+                Request fleet tier <ArrowRight />
+              </a>
+            </div>
+          </Panel>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Footer ──────────────────────────────────────────────────────────────── */
+function Footer() {
+  const COLS = [
+    { t: 'product',  ls: [{ l: 'overview', h: FLEET_BASE, int: true }, { l: 'github', h: 'https://github.com/Asomisetty27/thermalos' }, { l: 'live fleet demo', h: FLEET_BASE, int: true }, { l: 'changelog', h: '#' }] },
+    { t: 'research', ls: [{ l: 'stage 1 findings', h: researchPath('findings'), int: true }, { l: 'R_θ metric', h: '#signal' }, { l: 'lead-time testbed', h: researchPath('lab'), int: true }, { l: 'publication', h: researchPath('publication'), int: true }] },
+    { t: 'company',  ls: [{ l: 'about', h: '#' }, { l: 'contact', h: 'mailto:asomisetty27@gmail.com' }, { l: 'privacy', h: '#' }, { l: 'MIT license', h: '#' }] },
+  ];
+  return (
+    <footer style={{ borderTop: `1px solid ${T.border}`, background: T.s0 }}>
+      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '56px 32px' }}>
+        <div className="tos-footer-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: 36 }}>
+          <div>
+            <div style={{ marginBottom: 10 }}>
+              <ThetaLogo size={20} variant="full" color={T.healthy} />
+            </div>
+            <p style={{ fontFamily: FM, fontSize: 10.5, color: T.faint, lineHeight: 1.7, marginBottom: 18 }}>GPU thermal-power forensics.<br />Built at Cal Poly · MIT License.</p>
+            <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', border: `1px solid ${T.border}`, borderRadius: 4, overflow: 'hidden', maxWidth: 260 }}>
+              <input type="email" placeholder="stay updated" style={{ flex: 1, background: 'transparent', border: 'none', padding: '7px 10px', color: T.text, fontFamily: FM, fontSize: 10, outline: 'none' }} />
+              <button type="submit" style={{ padding: '7px 10px', background: T.s2, border: 'none', borderLeft: `1px solid ${T.border}`, color: T.muted, fontFamily: FM, fontSize: 10, cursor: 'pointer', transition: 'color .15s' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = T.healthy)}
+                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = T.muted)}>
+                subscribe →
+              </button>
+            </form>
+          </div>
+          {COLS.map(col => (
+            <div key={col.t}>
+              <div style={{ fontFamily: FM, fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase', color: T.text, marginBottom: 14 }}>{col.t}</div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {col.ls.map(link => (
+                  <li key={link.l}>
+                    {'int' in link && link.int ? (
+                      <Link to={link.h} style={{ fontFamily: FM, fontSize: 11, color: T.muted, textDecoration: 'none', transition: 'color .15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = T.text)}
+                        onMouseLeave={e => (e.currentTarget.style.color = T.muted)}>{link.l}</Link>
+                    ) : (
+                      <a href={link.h} target={link.h.startsWith('http') ? '_blank' : undefined} rel={link.h.startsWith('http') ? 'noreferrer' : undefined}
+                        style={{ fontFamily: FM, fontSize: 11, color: T.muted, textDecoration: 'none', transition: 'color .15s' }}
+                        onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = T.text)}
+                        onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = T.muted)}>{link.l}</a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 44, paddingTop: 18, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>© 2026 Theta · MIT License</span>
+          <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>R_θ = ΔT / P — the one ratio nobody else ships.</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ─── Global styles ───────────────────────────────────────────────────────── */
+const STYLES = `
+.tos-root { background: ${T.bg}; color: ${T.text}; font-family: ${FD}; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; min-height: 100vh; overflow-x: clip; }
+.tos-root a { text-decoration: none; color: inherit; }
+.tos-root * { box-sizing: border-box; }
+.tos-root button { box-sizing: border-box; }
+
+/* ── Blueprint grid ─────────────────────────────────────────────────────── */
+.tos-grid-bg {
+  background-image:
+    linear-gradient(rgba(201,168,76,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,.07) 1px, transparent 1px),
+    linear-gradient(rgba(201,168,76,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,.04) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+  background-position: -1px -1px;
+}
+
+/* ── Gradient orb animations (Framer mesh-gradient depth) ─────────────── */
+@keyframes tos-orb-a {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(5%,-7%) scale(1.07); }
+  66%  { transform: translate(-3%,4%) scale(.95); }
+}
+@keyframes tos-orb-b {
+  0%,100% { transform: translate(0,0) scale(1); }
+  40%  { transform: translate(-6%,5%) scale(1.05); }
+  75%  { transform: translate(4%,-3%) scale(.97); }
+}
+@keyframes tos-orb-c {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%  { transform: translate(3%,6%) scale(1.04); }
+}
+.tos-orb-a { animation: tos-orb-a 20s ease-in-out infinite; }
+.tos-orb-b { animation: tos-orb-b 26s ease-in-out infinite; }
+.tos-orb-c { animation: tos-orb-c 32s ease-in-out infinite; }
+
+/* ── Film grain overlay ─────────────────────────────────────────────────── */
+.tos-grain {
+  position: relative;
+}
+.tos-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  opacity: .025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px;
+  mix-blend-mode: overlay;
+}
+
+/* ── Glassmorphism panels ───────────────────────────────────────────────── */
+.tos-glass {
+  background: rgba(12,12,18,.68) !important;
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255,255,255,.055) !important;
+  box-shadow: 0 0 0 0.5px rgba(255,255,255,.04) inset, 0 8px 32px rgba(0,0,0,.35);
+}
+
+/* ── Gradient border via mask ───────────────────────────────────────────── */
+.tos-grad-border {
+  position: relative;
+  border: 1px solid transparent !important;
+  background-clip: padding-box;
+}
+.tos-grad-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(212,175,55,.45) 0%, rgba(201,168,76,.18) 50%, rgba(212,175,55,.08) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+.tos-grad-border > * { position: relative; z-index: 1; }
+
+/* ── Gradient text ──────────────────────────────────────────────────────── */
+.tos-grad-text {
+  background: linear-gradient(120deg, #ECE6D8 0%, #D4AF37 55%, #C9A84C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Shimmer sweep — for CTAs and install block ─────────────────────────── */
+@keyframes tos-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.tos-shimmer-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.tos-shimmer-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.07) 50%, transparent 70%);
+  background-size: 200%;
+  animation: tos-shimmer 2.8s linear infinite;
+  pointer-events: none;
+}
+
+/* ── Blur-in reveal (Framer scroll animation) ────────────────────────────── */
+@keyframes tos-blur-in {
+  from { filter: blur(6px); opacity: 0; transform: translateY(18px) scale(.99); }
+  to   { filter: blur(0);   opacity: 1; transform: translateY(0)    scale(1); }
+}
+.tos-blur-reveal { animation: tos-blur-in .65s cubic-bezier(.22,.68,0,1.2) both; }
+
+/* ── Section ambient glow (top-center radial) ────────────────────────────── */
+.tos-section-glow-green::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 80%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212,175,55,.3), transparent);
+  pointer-events: none;
+}
+.tos-section-glow-blue::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 80%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,.3), transparent);
+  pointer-events: none;
+}
+
+/* ── Feature card hover glow ─────────────────────────────────────────────── */
+.tos-feat-card {
+  transition: border-color .2s, box-shadow .25s;
+}
+.tos-feat-card:hover {
+  border-color: rgba(212,175,55,.25) !important;
+  box-shadow: 0 0 0 1px rgba(212,175,55,.08), 0 8px 24px rgba(0,0,0,.28);
+}
+.tos-feat-card:hover .tos-feat-index { color: ${T.healthy} !important; }
+
+/* ── Pulse dot ───────────────────────────────────────────────────────────── */
+@keyframes tos-pulse { 0%,100% { opacity:.3 } 50% { opacity:.9 } }
+.tos-pulse { animation: tos-pulse 1.8s ease-in-out infinite; }
+
+/* ── Terminal caret blink ────────────────────────────────────────────────── */
+@keyframes tos-caret-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }
+.tos-caret { animation: tos-caret-blink 1.06s steps(1) infinite; }
+
+/* ── Trace live-data breathe ─────────────────────────────────────────────── */
+@keyframes tos-trace-breathe { 0%, 100% { opacity: 1 } 50% { opacity: .94 } }
+.tos-trace-live { animation: tos-trace-breathe 5s ease-in-out infinite; }
+
+/* ── Signal state table ──────────────────────────────────────────────────── */
+.tos-state-row:hover { background: ${T.s2} !important; }
+.tos-state-row:hover td:first-child { color: ${T.healthy} !important; }
+
+/* ── CRT scanline ────────────────────────────────────────────────────────── */
+.tos-scanline {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 2px,
+    rgba(150, 200, 255, 0.04) 2px,
+    rgba(150, 200, 255, 0.04) 3px
+  );
+}
+
+/* ── Scrolling row ───────────────────────────────────────────────────────── */
+@keyframes tos-scroll-up {
+  0%   { transform: translateY(0) }
+  100% { transform: translateY(-50%) }
+}
+.tos-scroll-up { animation: tos-scroll-up 22s linear infinite; will-change: transform; }
+.tos-scroll-up:hover { animation-play-state: paused; }
+
+/* Range thumb — no glow ring */
+.tos-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: ${T.healthy}; border: 2px solid ${T.s0}; cursor: pointer; }
+.tos-range::-moz-range-thumb { width: 14px; height: 14px; border: 2px solid ${T.s0}; border-radius: 50%; background: ${T.healthy}; cursor: pointer; }
+
+/* Features named-area grid */
+.tos-features-grid {
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: auto auto;
+}
+.tos-feat-drift   { grid-column: 1 / 8; grid-row: 1; }
+.tos-feat-zombie  { grid-column: 8 / 13; grid-row: 1; }
+.tos-feat-ambient { grid-column: 1 / 5; grid-row: 2; }
+.tos-feat-vendor  { grid-column: 5 / 9; grid-row: 2; }
+.tos-feat-oss     { grid-column: 9 / 13; grid-row: 2; }
+
+/* Responsive */
+@media (max-width: 960px) {
+  .tos-hero-layout { grid-template-columns: 1fr !important; gap: 48px !important; }
+  .tos-two-col { grid-template-columns: 1fr !important; gap: 48px !important; }
+  .tos-features-grid { grid-template-columns: 1fr 1fr !important; }
+  .tos-feat-drift, .tos-feat-zombie, .tos-feat-ambient, .tos-feat-vendor, .tos-feat-oss { grid-column: span 1 !important; grid-row: auto !important; }
+  .tos-evidence-grid { grid-template-columns: 1fr !important; }
+  .tos-footer-grid { grid-template-columns: 1fr 1fr !important; }
+  .tos-nav-links { display: none !important; }
+}
+@media (max-width: 600px) {
+  .tos-features-grid { grid-template-columns: 1fr !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tos-pulse, [data-bar], [data-trace], [data-h], [data-r], [data-e], [data-f], [data-c], [data-p] {
+    animation: none !important; opacity: 1 !important; transform: none !important;
+    stroke-dasharray: none !important; stroke-dashoffset: 0 !important;
+  }
+}
+`;
+
+/* ─── Terminal demo ──────────────────────────────────────────────────────────
+ *
+ * Realistic typewriter terminal showing the actual onboarding flow.
+ * Loop: pip install → theta setup → GPU inventory → first R_theta readout.
+ * Pauses on hover, restarts after ~3s idle. Respects prefers-reduced-motion.
+ *
+ * Lines are typed character-by-character at variable speed (with brief jitter
+ * so it doesn't feel mechanical). Output blocks render instantly with a brief
+ * fade. Re-entry into viewport restarts the sequence.
+ */
+
+type TermLine =
+  | { kind: 'cmd';    text: string; delay?: number }        // typed at user speed
+  | { kind: 'out';    text: string; color?: string }        // instant output
+  | { kind: 'wait';   ms: number }                          // pause
+  | { kind: 'clear' };                                      // wipe screen
+
+const DEMO_SCRIPT: TermLine[] = [
+  { kind: 'cmd', text: 'pip install runtheta' },
+  { kind: 'wait', ms: 400 },
+  { kind: 'out', text: 'Collecting runtheta', color: T.muted },
+  { kind: 'out', text: '  Downloading runtheta-0.2.1-py3-none-any.whl (52.3 kB)', color: T.faint },
+  { kind: 'out', text: '  Installing collected packages: runtheta', color: T.faint },
+  { kind: 'out', text: 'Successfully installed runtheta-0.2.1', color: T.healthy },
+  { kind: 'wait', ms: 700 },
+  { kind: 'cmd', text: 'theta setup' },
+  { kind: 'wait', ms: 500 },
+  { kind: 'out', text: '  ✓  Python 3.12.1', color: T.healthy },
+  { kind: 'out', text: '  ✓  pynvml  ·  driver 535.183.06  ·  4 GPUs detected', color: T.healthy },
+  { kind: 'out', text: '  ✓  prometheus_client — metrics export available', color: T.healthy },
+  { kind: 'wait', ms: 600 },
+  { kind: 'out', text: '  ━━━━━━  step 2/6  GPU inventory', color: T.bp },
+  { kind: 'out', text: '  GPU 0  Tesla T4    16 GB   42°C    11.4W   P8   ● online', color: T.muted },
+  { kind: 'out', text: '  GPU 1  Tesla T4    16 GB   70°C    68.0W   P0   ● online', color: T.muted },
+  { kind: 'out', text: '  GPU 2  Tesla T4    16 GB   67°C    31.2W   P0   ● online', color: T.muted },
+  { kind: 'out', text: '  GPU 3  Tesla T4    16 GB   55°C    12.6W   P8   ● online', color: T.muted },
+  { kind: 'wait', ms: 700 },
+  { kind: 'out', text: '  ━━━━━━  step 4/6  First R_θ reading', color: T.bp },
+  { kind: 'wait', ms: 500 },
+  { kind: 'out', text: '  GPU 0  R_θ=1.281 C/W  ● clean_idle           conf=1.00', color: T.bp },
+  { kind: 'out', text: '  GPU 1  R_θ=0.724 C/W  ● under_load           conf=0.99', color: T.healthy },
+  { kind: 'out', text: '  GPU 2  R_θ=1.541 C/W  ● zombie_recovery      conf=1.00', color: T.critical },
+  { kind: 'out', text: '  GPU 3  R_θ=2.104 C/W  ● child_exit_recovery  conf=0.98', color: T.caution },
+  { kind: 'wait', ms: 900 },
+  { kind: 'out', text: '  ! GPU 2 — CUDA context retained at 31W. Release stale context.', color: T.critical },
+  { kind: 'wait', ms: 2200 },
+];
+
+function TerminalDemo() {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const inView  = useInView(wrapRef, { amount: 0.3 });
+  const [lines, setLines] = useState<{ text: string; color?: string; cmd?: boolean }[]>([]);
+  const [typing, setTyping] = useState<{ text: string; color?: string; cmd?: boolean } | null>(null);
+  const [paused, setPaused] = useState(false);
+  const cancelRef = useRef(false);
+
+  useEffect(() => {
+    if (!inView || rm()) {
+      // Reduced motion: render the script as instant output, no animation
+      if (rm()) {
+        setLines(DEMO_SCRIPT
+          .filter(l => l.kind === 'cmd' || l.kind === 'out')
+          .map(l => l.kind === 'cmd'
+            ? { text: (l as { text: string }).text, cmd: true }
+            : { text: (l as { text: string; color?: string }).text, color: (l as { color?: string }).color }
+          ));
+      }
+      return;
+    }
+
+    cancelRef.current = false;
+
+    async function run() {
+      while (!cancelRef.current) {
+        setLines([]);
+        setTyping(null);
+
+        for (const step of DEMO_SCRIPT) {
+          if (cancelRef.current) return;
+
+          // Wait while paused
+          while (paused && !cancelRef.current) await sleep(120);
+
+          if (step.kind === 'clear') {
+            setLines([]);
+            continue;
+          }
+          if (step.kind === 'wait') {
+            await sleep(step.ms);
+            continue;
+          }
+          if (step.kind === 'cmd') {
+            // Typewriter
+            const full = step.text;
+            for (let i = 1; i <= full.length; i++) {
+              if (cancelRef.current) return;
+              setTyping({ text: full.slice(0, i), cmd: true });
+              // Variable speed for natural feel
+              const ch     = full[i - 1];
+              const jitter = ch === ' ' ? 25 : ch === '-' ? 55 : 32 + Math.random() * 38;
+              await sleep(jitter);
+            }
+            await sleep(280);
+            setLines(prev => [...prev, { text: full, cmd: true }]);
+            setTyping(null);
+            continue;
+          }
+          if (step.kind === 'out') {
+            setLines(prev => [...prev, { text: step.text, color: step.color }]);
+            await sleep(70);
+            continue;
+          }
+        }
+
+        // Idle pause then loop
+        await sleep(2000);
+      }
+    }
+
+    run();
+    return () => { cancelRef.current = true; };
+  }, [inView, paused]);
+
+  return (
+    <section style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.35 }} />
+      <div ref={wrapRef} style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 72, alignItems: 'center' }} className="tos-two-col">
+          <div>
+            <SectionHead eyebrow="See it run" title={<>90 seconds from<br />pip install to first<br />R_θ reading.</>}
+              body={<>The setup wizard walks you through GPU detection, virtual ambient locking, and first classification — all from your terminal. Run <span style={{ fontFamily: FM, color: T.text }}>theta setup</span> after install.</>} />
+            <div style={{ marginTop: 28, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <a href="https://pypi.org/project/thermalos/" target="_blank" rel="noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 4, border: `1px solid ${T.borderHi}`, background: T.s1, color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.healthy)}
+                onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi)}>
+                <Pulse />&nbsp;view on PyPI
+              </a>
+              <a href="https://github.com/Asomisetty27/thermalos#quick-start" target="_blank" rel="noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 4, border: `1px solid ${T.border}`, background: 'transparent', color: T.muted, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'color .15s, border-color .15s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi; (e.currentTarget as HTMLAnchorElement).style.color = T.text; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.border; (e.currentTarget as HTMLAnchorElement).style.color = T.muted; }}>
+                docs <ChevronRight />
+              </a>
+            </div>
+          </div>
+
+          {/* Terminal window */}
+          <div
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            style={{
+              borderRadius: 8,
+              border: `1px solid ${T.border}`,
+              background: '#08080C',
+              boxShadow: '0 24px 60px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02)',
+              overflow: 'hidden',
+              fontFamily: FM,
+              fontSize: 12.5,
+              lineHeight: 1.7,
+            }}
+          >
+            {/* Window chrome */}
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              padding: '10px 14px',
+              borderBottom: `1px solid ${T.border}`,
+              background: '#0E0E14',
+              gap: 8,
+            }}>
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#E1554F', border: '0.5px solid rgba(0,0,0,0.3)' }} />
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#E1A446', border: '0.5px solid rgba(0,0,0,0.3)' }} />
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#56C156', border: '0.5px solid rgba(0,0,0,0.3)' }} />
+              <span style={{ flex: 1, textAlign: 'center', fontFamily: FM, fontSize: 10.5, color: T.faint, letterSpacing: '.04em' }}>
+                amogh@thermalos · zsh — 84×26
+              </span>
+              <span style={{ fontFamily: FM, fontSize: 9.5, color: paused ? T.caution : T.healthy, letterSpacing: '.1em' }}>
+                {paused ? 'PAUSED' : '● REC'}
+              </span>
+            </div>
+
+            {/* Terminal body */}
+            <div style={{
+              padding: '18px 22px 22px',
+              minHeight: 380,
+              maxHeight: 440,
+              overflow: 'hidden',
+              position: 'relative',
+              background: 'linear-gradient(180deg, #08080C 0%, #0A0A0F 100%)',
+            }}>
+              {/* CRT scanline texture — extremely subtle */}
+              <div className="tos-scanline" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.08 }} />
+
+              {lines.map((l, i) => (
+                <div key={i} style={{
+                  whiteSpace: 'pre',
+                  color: l.cmd ? T.text : (l.color || T.muted),
+                  fontFamily: FM,
+                  fontSize: 12.5,
+                  letterSpacing: '0.005em',
+                }}>
+                  {l.cmd && <span style={{ color: T.healthy, marginRight: 8, userSelect: 'none' }}>$</span>}
+                  {l.text}
+                </div>
+              ))}
+              {typing && (
+                <div style={{
+                  whiteSpace: 'pre',
+                  color: T.text,
+                  fontFamily: FM,
+                  fontSize: 12.5,
+                  letterSpacing: '0.005em',
+                }}>
+                  <span style={{ color: T.healthy, marginRight: 8, userSelect: 'none' }}>$</span>
+                  {typing.text}
+                  <span className="tos-caret" style={{
+                    display: 'inline-block', width: 7, height: 13, background: T.healthy,
+                    marginLeft: 1, verticalAlign: 'text-top', marginTop: 2,
+                  }} />
+                </div>
+              )}
+              {!typing && lines.length === DEMO_SCRIPT.filter(l => l.kind === 'cmd' || l.kind === 'out').length && (
+                <div style={{ color: T.healthy, marginTop: 8 }}>
+                  <span style={{ color: T.healthy, marginRight: 8, userSelect: 'none' }}>$</span>
+                  <span className="tos-caret" style={{ display: 'inline-block', width: 7, height: 13, background: T.healthy, verticalAlign: 'text-top', marginTop: 2 }} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+/* ─── Root ────────────────────────────────────────────────────────────────── */
+export default function ThermalOSLanding() {
+  return (
+    <main className="tos-root">
+      <style>{STYLES}</style>
+      <Nav />
+      <Hero />
+      <TerminalDemo />
+      <Signal />
+      <Evidence />
+      <FeaturesGrid />
+      <React.Suspense fallback={null}>
+        <DataCenterShowcase />
+      </React.Suspense>
+      <React.Suspense fallback={null}>
+        <OperatorViewShowcase />
+      </React.Suspense>
+      <CompetitorTable />
+      <Pricing />
+      <Footer />
+    </main>
+  );
+}

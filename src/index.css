@@ -1,0 +1,589 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=clash-display@500,600,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 4%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 18% 7%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 18% 7%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 170 80% 50%;
+    --primary-foreground: 220 20% 4%;
+
+    --secondary: 220 16% 14%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 220 14% 12%;
+    --muted-foreground: 215 12% 50%;
+
+    --accent: 280 70% 60%;
+    --accent-foreground: 210 20% 95%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 16% 16%;
+    --input: 220 16% 16%;
+    --ring: 170 80% 50%;
+
+    --radius: 0.5rem;
+
+    --neon-cyan: 170 80% 50%;
+    --neon-magenta: 310 80% 60%;
+    --neon-amber: 38 90% 55%;
+    --neon-green: 142 70% 50%;
+    --neon-red: 0 72% 55%;
+
+    --panel: 220 18% 6%;
+    --panel-border: 220 16% 14%;
+    --panel-highlight: 220 16% 10%;
+
+    --sidebar-background: 220 20% 4%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 170 80% 50%;
+    --sidebar-primary-foreground: 220 20% 4%;
+    --sidebar-accent: 220 16% 10%;
+    --sidebar-accent-foreground: 210 20% 85%;
+    --sidebar-border: 220 16% 14%;
+    --sidebar-ring: 170 80% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* Hide system cursor only when custom cursor is mounted (set via body class) */
+@media (pointer: fine) {
+  body.custom-cursor-active,
+  body.custom-cursor-active *,
+  body.custom-cursor-active *::before,
+  body.custom-cursor-active *::after {
+    cursor: none !important;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Animations */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes boot-text {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.3; }
+  94% { opacity: 1; }
+  96% { opacity: 0.7; }
+  97% { opacity: 1; }
+}
+
+@keyframes status-pulse {
+  0%, 100% { box-shadow: 0 0 4px currentColor; }
+  50% { box-shadow: 0 0 12px currentColor, 0 0 20px currentColor; }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-scan-line {
+  animation: scan-line 3s linear infinite;
+}
+
+.animate-boot-text {
+  animation: boot-text 0.4s ease-out forwards;
+}
+
+.animate-flicker {
+  animation: flicker 4s linear infinite;
+}
+
+.animate-status-pulse {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+/* ThermalOS brand tokens — Isotherm system */
+:root {
+  --t-abyss:        #050407;   /* true obsidian (page deepest) */
+  --t-deep-field:   #181522;   /* warm slate w/ violet undertone */
+  --t-cold-probe:   #2A2535;   /* warm slate deep */
+  --t-stable:       #8A6F2E;   /* deep champagne */
+  --t-healthy:      #D4AF37;   /* 18k champagne — brand accent */
+  --t-healthy-dim:  #8A6F2E;
+  --t-drift:        #C9A84C;
+  --t-caution:      #E8B23A;
+  --t-rising:       #C85F2A;   /* copper */
+  --t-critical:     #D63D3D;
+  --t-critical-dim: #8C2828;
+  --t-text:         #F0EADC;   /* warm ivory (high contrast) */
+  --t-muted:        #A8A092;   /* body secondary */
+  --t-faint:        #6A6354;   /* labels / hints */
+  --t-ghost:        #2E2A24;
+  --t-border:       #2E2A24;
+  --t-border-hi:    #48402F;   /* lifted border — clear delineation */
+
+  /* Surface elevation — stepped for hierarchy/depth */
+  --t-surface-0:    #050407;
+  --t-surface-1:    #0E0C12;
+  --t-surface-2:    #181522;
+  --t-surface-3:    #221E2E;
+
+  /* Brand accents + counterpoint */
+  --t-platinum:     #D8D2C2;   /* highlight, divider */
+  --t-copper:       #B87333;   /* secondary accent (counterpoint to gold) */
+
+  /* Blueprint ink — warm champagne grid (low-density) */
+  --t-blueprint:        rgba(212, 175, 55, 0.07);
+  --t-blueprint-hi:     rgba(212, 175, 55, 0.18);
+  --t-blueprint-ink:    #C9A84C;
+  --t-blueprint-tint:   rgba(212, 175, 55, 0.04);
+
+  /* Elevation shadows — premium depth */
+  --t-shadow-sm:    0 1px 2px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(212,175,55,0.04);
+  --t-shadow-md:    0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(240,234,220,0.04);
+  --t-shadow-lg:    0 12px 36px rgba(0,0,0,0.65), inset 0 1px 0 rgba(240,234,220,0.06);
+  --t-shadow-gold:  0 8px 28px rgba(212,175,55,0.18), inset 0 1px 0 rgba(245,217,138,0.18);
+
+  /* Type stacks — YC deep-tech: Clash Display for headlines, Satoshi for UI/body, JetBrains Mono for data */
+  --t-font-serif:   'Clash Display', 'Satoshi', 'Inter', system-ui, sans-serif;
+  --t-font-display: 'Clash Display', 'Satoshi', 'Inter', system-ui, -apple-system, sans-serif;
+  --t-font-ui:      'Satoshi', 'Inter', system-ui, -apple-system, sans-serif;
+  --t-font-body:    'Inter', 'Satoshi', system-ui, -apple-system, sans-serif;
+  --t-font-mono:    'JetBrains Mono', 'Space Mono', 'Fira Mono', ui-monospace, monospace;
+}
+
+/* Landing page utility classes — used by /landing components */
+.t-font-serif   { font-family: var(--t-font-display); font-weight: 600; letter-spacing: -0.02em; }
+.t-font-display { font-family: var(--t-font-display); }
+.t-font-mono    { font-family: var(--t-font-mono); }
+
+.t-display-xl {
+  font-family: var(--t-font-display);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+.t-display-lg {
+  font-family: var(--t-font-display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+.t-display-md {
+  font-family: var(--t-font-display);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+.t-eyebrow {
+  font-family: var(--t-font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--t-faint);
+}
+.t-mono-sm {
+  font-family: var(--t-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+.t-mono-xs {
+  font-family: var(--t-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.t-body {
+  font-family: var(--t-font-display);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--t-muted);
+}
+
+.t-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.t-text-healthy { color: var(--t-healthy); }
+.t-text-caution { color: var(--t-caution); }
+.t-text-rising { color: var(--t-rising); }
+.t-text-critical { color: var(--t-critical); }
+.t-text-info { color: var(--t-blueprint-ink); }
+.t-text-muted { color: var(--t-muted); }
+.t-text-faint { color: var(--t-faint); }
+
+.t-card {
+  background: var(--t-surface-1);
+  border: 1px solid var(--t-border);
+  border-radius: 6px;
+}
+
+.t-card-inner {
+  background: var(--t-surface-2);
+  border: 1px solid var(--t-border);
+  border-radius: 4px;
+}
+
+.t-card-dash {
+  background: #141412;
+  border: 0.5px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+}
+
+.t-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 5px;
+  background: var(--t-healthy);
+  color: #06150C;
+  font-family: var(--t-font-display);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: filter 0.15s var(--t-ease, cubic-bezier(0.32, 0.72, 0, 1));
+}
+.t-btn-primary:hover { filter: brightness(1.08); }
+.t-btn-primary:active { filter: brightness(0.95); }
+
+.t-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 5px;
+  background: var(--t-surface-1);
+  color: var(--t-text);
+  font-family: var(--t-font-display);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--t-border-hi);
+  text-decoration: none;
+  transition: border-color 0.15s var(--t-ease, cubic-bezier(0.32, 0.72, 0, 1));
+}
+.t-btn-ghost:hover { border-color: var(--t-muted); }
+
+/* Range input styled */
+.t-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--t-border);
+  border-radius: 1px;
+  outline: none;
+}
+.t-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--t-healthy);
+  border: 2px solid var(--t-surface-0);
+  box-shadow: 0 0 0 1px var(--t-healthy);
+  cursor: pointer;
+}
+.t-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--t-healthy);
+  border: 2px solid var(--t-surface-0);
+  box-shadow: 0 0 0 1px var(--t-healthy);
+  cursor: pointer;
+}
+
+/* Subtle blueprint grid background — used by landing */
+.t-bp-grid {
+  background-image:
+    linear-gradient(var(--t-blueprint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--t-blueprint) 1px, transparent 1px),
+    linear-gradient(var(--t-blueprint-tint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--t-blueprint-tint) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+  background-position: -1px -1px;
+}
+
+/* Landing-specific keyframes */
+@keyframes t-blip {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+.animate-t-blip { animation: t-blip 1.6s ease-in-out infinite; }
+
+@keyframes t-isotherm-pulse {
+  0%   { transform: scale(1);    opacity: 0.55; }
+  100% { transform: scale(2.6);  opacity: 0; }
+}
+.animate-t-isotherm { animation: t-isotherm-pulse 2.4s ease-out infinite; }
+
+@keyframes thermal-pulse {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.animate-thermal-pulse {
+  animation: thermal-pulse 2s ease-out infinite;
+}
+
+/* Neon glow effects */
+.neon-text-cyan {
+  text-shadow: 0 0 6px hsl(var(--neon-cyan) / 0.35), 0 0 18px hsl(var(--neon-cyan) / 0.12);
+}
+
+.neon-text-magenta {
+  text-shadow: 0 0 6px hsl(var(--neon-magenta) / 0.35), 0 0 18px hsl(var(--neon-magenta) / 0.12);
+}
+
+.neon-border {
+  box-shadow: inset 0 0 12px hsl(var(--neon-cyan) / 0.03), 0 0 8px hsl(var(--neon-cyan) / 0.06);
+}
+
+.panel-glass {
+  background: linear-gradient(135deg, hsl(var(--panel) / 0.9), hsl(var(--panel) / 0.7));
+  backdrop-filter: blur(10px);
+  border: 1px solid hsl(var(--panel-border));
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * FX — Framer-style visual effects (shared across portfolio + ThermalOS).
+ *   .fx-orb-{a,b,c}   — drifting orb animations (use with GradientOrbs)
+ *   .fx-grain         — film grain texture overlay
+ *   .fx-glass         — heavier glassmorphism (vs. panel-glass which is lighter)
+ *   .fx-grad-text-*   — gradient-fill text in brand colors
+ *   .fx-shimmer       — animated diagonal shimmer sweep
+ *   .fx-card          — hover-lift card (border accent + shadow)
+ *   .fx-section-line  — gradient horizontal accent line at section top
+ *   .fx-blur-reveal   — blur-in scroll reveal animation
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+/* Orb drift cycles */
+@keyframes fx-orb-a {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(5%,-7%) scale(1.07); }
+  66%     { transform: translate(-3%,4%) scale(.95); }
+}
+@keyframes fx-orb-b {
+  0%,100% { transform: translate(0,0) scale(1); }
+  40%     { transform: translate(-6%,5%) scale(1.05); }
+  75%     { transform: translate(4%,-3%) scale(.97); }
+}
+@keyframes fx-orb-c {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%     { transform: translate(3%,6%) scale(1.04); }
+}
+.fx-orb-a { animation: fx-orb-a 20s ease-in-out infinite; }
+.fx-orb-b { animation: fx-orb-b 26s ease-in-out infinite; }
+.fx-orb-c { animation: fx-orb-c 32s ease-in-out infinite; }
+
+/* Heavier glass — for content cards that should float above the orb layer */
+.fx-glass {
+  background: rgba(12, 16, 24, 0.62);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* Gradient text fills (cyan, magenta, amber, green) */
+.fx-grad-text-cyan {
+  background: linear-gradient(120deg,
+    hsl(43 80% 62%) 0%,
+    hsl(43 68% 50%) 50%,
+    hsl(34 60% 48%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.fx-grad-text-magenta {
+  background: linear-gradient(120deg,
+    hsl(310 90% 70%) 0%,
+    hsl(310 80% 60%) 50%,
+    hsl(290 70% 60%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.fx-grad-text-green {
+  background: linear-gradient(120deg,
+    hsl(142 80% 60%) 0%,
+    hsl(142 70% 50%) 50%,
+    hsl(155 65% 55%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.fx-grad-text-amber {
+  background: linear-gradient(120deg,
+    hsl(38 100% 65%) 0%,
+    hsl(38 90% 55%) 50%,
+    hsl(28 85% 60%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.fx-grad-text-platinum {
+  background: linear-gradient(135deg,
+    hsl(210 20% 95%) 0%,
+    hsl(210 14% 70%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Shimmer sweep (diagonal moving highlight) */
+@keyframes fx-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.fx-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.fx-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 70%
+  );
+  background-size: 200%;
+  animation: fx-shimmer 2.8s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+.fx-shimmer > * { position: relative; z-index: 2; }
+
+/* Card hover-lift — for project tiles, strength cards, anything clickable */
+.fx-card {
+  transition:
+    border-color .22s ease,
+    box-shadow .25s ease,
+    transform .22s ease;
+}
+.fx-card:hover {
+  border-color: hsl(var(--primary) / 0.3) !important;
+  box-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.08),
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 0.5px hsl(var(--primary) / 0.04);
+  transform: translateY(-2px);
+}
+
+/* Section accent line — gradient horizontal at top of section */
+.fx-section-line {
+  position: relative;
+}
+.fx-section-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 78%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--primary) / 0.35),
+    transparent
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Blur-in reveal (use on first paint or scroll trigger) */
+@keyframes fx-blur-in {
+  from {
+    filter: blur(6px);
+    opacity: 0;
+    transform: translateY(18px) scale(.99);
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.fx-blur-reveal {
+  animation: fx-blur-in .65s cubic-bezier(.22, .68, 0, 1.2) both;
+}
+
+/* Reduced motion — kill all FX animations */
+@media (prefers-reduced-motion: reduce) {
+  .fx-orb-a, .fx-orb-b, .fx-orb-c,
+  .fx-shimmer::after,
+  .fx-blur-reveal {
+    animation: none !important;
+  }
+  .fx-blur-reveal { filter: none; opacity: 1; transform: none; }
+}
+
+/* Print stylesheet for Quickview */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  * {
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
