@@ -1227,6 +1227,15 @@ function Pricing() {
                 onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '1')}>
                 Request fleet tier <ArrowRight />
               </a>
+              {/* Academia free-support note */}
+              <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 4, border: `1px solid ${T.border}`, background: T.s0 }}>
+                <div style={{ fontFamily: FM, fontSize: 9.5, color: T.healthy, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 4 }}>University &amp; AI Lab</div>
+                <div style={{ fontFamily: FM, fontSize: 10.5, color: T.muted, lineHeight: 1.6 }}>
+                  Academic deployments are free — always. If you're at a university AI lab or research institution,{' '}
+                  <a href="mailto:asomisetty27@gmail.com?subject=Theta academic deployment" style={{ color: T.healthy, textDecoration: 'none' }}>reach out</a>{' '}
+                  and we'll help you get running at no cost.
+                </div>
+              </div>
             </div>
           </Panel>
         </div>
