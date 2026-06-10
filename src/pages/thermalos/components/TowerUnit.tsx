@@ -38,7 +38,17 @@ const T = {
 // and the internal-glow vent change color.
 // ──────────────────────────────────────────────────────────────────────────
 
-export type Phase = 'idle' | 'load' | 'anomaly' | 'critical' | 'recovery';
+import {
+  ThermalSim,
+  H100_SXM,
+  phaseAt,
+  thermalHex as _thermalHexImpl,
+  fmtRth,
+  type Phase as PhaseT,
+  type Telemetry,
+} from './thermalModel';
+
+export type Phase = PhaseT;
 export type AlertLogEntry = { id: number; t: string; phase: Phase; node: string; rtheta: string; msg: string };
 
 export const HERO_NODE_ID = 'G-04';
@@ -48,66 +58,20 @@ export const _towerPhase: { current: Phase } = { current: 'idle' };
 export const _towerProgress = { current: 0 };
 export const _alertLog: { current: AlertLogEntry[] } = { current: [] };
 
-const PHASE_SEQUENCE: { phase: Phase; dur: number; level: number }[] = [
-  { phase: 'idle',     dur: 3.0, level: 0.12 },
-  { phase: 'load',     dur: 3.2, level: 0.45 },
-  { phase: 'anomaly',  dur: 2.6, level: 0.72 },
-  { phase: 'critical', dur: 2.4, level: 1.0  },
-  { phase: 'recovery', dur: 2.8, level: 0.3  },
-];
+// Live physically-derived telemetry — written by ThermalDriver each frame,
+// read by OperatorPanel and the HUD layers. See thermalModel.ts for why the
+// old `0.071 + level * 0.024` readouts were physically wrong (R_θ must stay
+// FLAT under healthy load — that's the product's core claim).
+export const _towerTelemetry: { current: Telemetry } = {
+  current: {
+    tj: 37, tjSensor: 37, p: 84, pSensor: 84,
+    rthTrue: H100_SXM.rthBase, rthSensor: H100_SXM.rthBase, rthStale: false,
+    glow: 0.12, fan: 0.12, throttled: false, leadMin: null,
+  },
+};
 
-const PHASE_STARTS: number[] = (() => {
-  let acc = 0;
-  return PHASE_SEQUENCE.map((p) => { const s = acc; acc += p.dur; return s; });
-})();
-const LOOP_SECONDS = PHASE_STARTS[PHASE_STARTS.length - 1] + PHASE_SEQUENCE[PHASE_SEQUENCE.length - 1].dur;
-
-// Per-phase eased interpolation: real thermal systems don't ramp linearly.
-//   load     → smoothstep (gradual ramp as utilization climbs)
-//   anomaly  → ease-in (slow drift then accelerating divergence)
-//   critical → snap (fast rise as throttle hits)
-//   recovery → exponential decay (Newton cooling)
-//   idle     → flat
-function easePhase(phase: Phase, p: number): number {
-  const x = THREE.MathUtils.clamp(p, 0, 1);
-  switch (phase) {
-    case 'load':     return x * x * (3 - 2 * x);          // smoothstep
-    case 'anomaly':  return x * x;                         // ease-in
-    case 'critical': return 1 - Math.pow(1 - x, 3);        // ease-out fast
-    case 'recovery': return 1 - Math.exp(-3.2 * x);        // exp decay
-    default:         return x;
-  }
-}
-
-function phaseAt(t: number): { idx: number; phase: Phase; level: number; progress: number } {
-  const tt = t % LOOP_SECONDS;
-  let idx = PHASE_SEQUENCE.length - 1;
-  for (let i = 0; i < PHASE_SEQUENCE.length; i++) {
-    if (tt < PHASE_STARTS[i] + PHASE_SEQUENCE[i].dur) { idx = i; break; }
-  }
-  const cur = PHASE_SEQUENCE[idx];
-  const elapsed = tt - PHASE_STARTS[idx];
-  const progress = THREE.MathUtils.clamp(elapsed / cur.dur, 0, 1);
-  const next = PHASE_SEQUENCE[(idx + 1) % PHASE_SEQUENCE.length];
-  const k = easePhase(cur.phase, progress);
-  return { idx, phase: cur.phase, level: THREE.MathUtils.lerp(cur.level, next.level, k), progress };
-}
-
-const _c0 = new THREE.Color('#1c6b3a');
-const _c1 = new THREE.Color('#c8942a');
-const _c2 = new THREE.Color('#c85f2a');
-const _c3 = new THREE.Color('#e0392f');
-const _out = new THREE.Color();
-
-export function thermalHex(t: number): THREE.Color {
-  const x = THREE.MathUtils.clamp(t, 0, 1);
-  if (x < 0.4) return _out.copy(_c0).lerp(_c1, x / 0.4);
-  if (x < 0.7) return _out.copy(_c1).lerp(_c2, (x - 0.4) / 0.3);
-  return _out.copy(_c2).lerp(_c3, (x - 0.7) / 0.3);
-}
-
-export function rthetaAt(level: number): string { return (0.071 + level * 0.024).toFixed(3); }
-export function tjAt(level: number): string { return (36 + level * 54).toFixed(0); }
+// Re-export so existing importers keep a single path.
+export const thermalHex = _thermalHexImpl;
 
 const ALERT_COPY: Partial<Record<Phase, string>> = {
   load:     'Utilization ramped — thermal path nominal',
@@ -118,28 +82,33 @@ const ALERT_COPY: Partial<Record<Phase, string>> = {
 
 let _alertSeq = 0;
 
-function pushAlert(phase: Phase, level: number) {
+function pushAlert(phase: Phase, rthSensor: number) {
   const msg = ALERT_COPY[phase];
   if (!msg) return;
   _alertSeq += 1;
   const entry: AlertLogEntry = {
     id: _alertSeq,
     t: new Date().toLocaleTimeString('en-US', { hour12: false }),
-    phase, node: HERO_NODE_ID, rtheta: rthetaAt(level), msg,
+    phase, node: HERO_NODE_ID, rtheta: fmtRth(rthSensor), msg,
   };
   _alertLog.current = [entry, ..._alertLog.current].slice(0, 6);
 }
 
+const _sim = new ThermalSim(H100_SXM);
+
 function ThermalDriver() {
   const lastIdx = useRef(-1);
-  useFrame((state) => {
-    const { idx, phase, level, progress } = phaseAt(state.clock.elapsedTime);
-    _towerLevel.current = level;
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime;
+    const { idx, phase, progress } = phaseAt(t);
+    const telem = _sim.step(phase, progress, delta, t);
+    _towerTelemetry.current = telem;
+    _towerLevel.current = telem.glow;
     _towerPhase.current = phase;
     _towerProgress.current = progress;
     if (idx !== lastIdx.current) {
       lastIdx.current = idx;
-      pushAlert(phase, level);
+      pushAlert(phase, telem.rthSensor);
     }
   });
   return null;

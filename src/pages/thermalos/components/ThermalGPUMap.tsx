@@ -68,16 +68,24 @@ export default function ThermalGPUMap() {
   const alertRingRef = useRef<SVGGElement | null>(null);
   const alertLabelRef = useRef<HTMLDivElement | null>(null);
   const readTmaxRef = useRef<HTMLSpanElement | null>(null);
+  const readPowerRef = useRef<HTMLSpanElement | null>(null);
   const readRthetaRef = useRef<HTMLSpanElement | null>(null);
   const readStatusRef = useRef<HTMLSpanElement | null>(null);
   const timestampRef = useRef<HTMLSpanElement | null>(null);
   const rafRef = useRef<number>(0);
   const startRef = useRef<number | null>(null);
+  const lastRef = useRef<number | null>(null);
   const temps = useRef<number[]>(Array(N).fill(0.15));
+  const diffBuf = useRef<number[]>(Array(N).fill(0));
 
   const animate = useCallback((now: number) => {
     if (!startRef.current) startRef.current = now;
+    // dt for frame-rate-independent integration — the old fixed 0.04/frame
+    // smoothing ran 2× faster on 120 Hz displays.
+    const dt = Math.min(0.05, (now - (lastRef.current || now)) / 1000);
+    lastRef.current = now;
     const elapsed = ((now - startRef.current) / 1000) % LOOP;
+    const timeS = (now - startRef.current) / 1000;
     const { phase, phaseT } = getPhase(elapsed);
 
     const pt = easeInOut(phaseT);
@@ -121,16 +129,41 @@ export default function ThermalGPUMap() {
           default:
             target = 0.12;
         }
-        // Smooth toward target at different rates
-        const rate = isAnomaly ? 0.04 : 0.025;
-        t[idx] = lerp(t[idx], target, rate);
+        // Frame-rate-independent first-order smoothing (RC-style). The
+        // anomaly cell responds faster — a hotspot is a small thermal mass.
+        const k = isAnomaly ? 2.6 : 1.6; // per-second rates
+        t[idx] = lerp(t[idx], target, 1 - Math.exp(-k * dt));
       }
     }
 
-    // Update cell fills
+    // Lateral heat conduction — silicon is a heat spreader, so the hotspot
+    // bleeds into adjacent SMs instead of being one isolated hot rectangle.
+    // 4-neighbor Laplacian diffusion; this is what gives real thermal
+    // imagery its gradient halo.
+    const diff = diffBuf.current;
+    for (let col = 0; col < COLS; col++) {
+      for (let row = 0; row < ROWS; row++) {
+        const idx = col * ROWS + row;
+        let sum = 0, n = 0;
+        if (col > 0)        { sum += t[idx - ROWS]; n++; }
+        if (col < COLS - 1) { sum += t[idx + ROWS]; n++; }
+        if (row > 0)        { sum += t[idx - 1]; n++; }
+        if (row < ROWS - 1) { sum += t[idx + 1]; n++; }
+        diff[idx] = (sum / n - t[idx]);
+      }
+    }
+    const kDiff = 1 - Math.exp(-1.1 * dt);
+    for (let i = 0; i < N; i++) t[i] += diff[i] * kDiff;
+
+    // Update cell fills — with a whisper of per-cell sensor flicker so the
+    // grid reads as live telemetry, not a finished render. Display-only;
+    // never fed back into the simulation state.
     for (let i = 0; i < N; i++) {
       const el = cellRefs.current[i];
-      if (el) el.setAttribute('fill', thermalColor(t[i]));
+      if (el) {
+        const flicker = Math.sin(timeS * 2.3 + i * 2.17) * 0.006 + Math.sin(timeS * 5.9 + i * 0.71) * 0.004;
+        el.setAttribute('fill', thermalColor(t[i] + flicker));
+      }
     }
 
     // Alert ring — show in phases 3+4
@@ -146,17 +179,36 @@ export default function ThermalGPUMap() {
       alertLabelRef.current.style.opacity = showAlert ? '1' : '0';
     }
 
-    // Readouts
+    // ── Readouts — physically consistent with the T4 Stage 1 data ─────────
+    // T_amb = 21 °C virtual ambient; board power scripted per phase
+    // (T4: ~12 W idle, ~68 W under load — power stays FLAT through the
+    // anomaly, which is the whole point: temp rising at constant power is
+    // exactly what R_θ = ΔT/P isolates). The displayed R_θ is computed from
+    // the displayed T and P, so it reproduces the real measurements:
+    // idle ≈ 1.3 C/W, load ≈ 0.7 C/W, anomaly drifting up toward ~1.0.
+    const T_AMB = 21;
     const tmax = Math.max(...t);
     const tmaxC = Math.round(37 + tmax * 58); // map 0-1 to 37-95°C
-    const rtheta = (2.1 - tmax * 1.4).toFixed(2);
-    const status = phase >= 3 && pt > 0.4
-      ? '⚠ DRIFT'
-      : phase >= 1 && phase <= 4
-        ? '● LOAD'
-        : '○ IDLE';
+    let powerW: number;
+    switch (phase) {
+      case 0:  powerW = 12 + Math.sin(timeS * 0.9) * 0.6; break;       // idle housekeeping
+      case 1:  powerW = lerp(12, 68, pt); break;                        // job launch ramp
+      case 5:  powerW = lerp(68, 12, pt); break;                        // job drained
+      default: powerW = 68 + Math.sin(timeS * 4.7) * 1.4; break;        // load/anomaly/alert: flat ±ripple
+    }
+    const pW = Math.max(1, Math.round(powerW));
+    const rtheta = ((tmaxC - T_AMB) / pW).toFixed(2);
+    const throttling = tmaxC >= 85; // T4 slowdown threshold
+    const status = throttling && phase >= 3
+      ? '⚠ THROTTLE'
+      : phase >= 3 && pt > 0.4
+        ? '⚠ DRIFT'
+        : phase >= 1 && phase <= 4
+          ? '● LOAD'
+          : '○ IDLE';
 
     if (readTmaxRef.current) readTmaxRef.current.textContent = `${tmaxC}°C`;
+    if (readPowerRef.current) readPowerRef.current.textContent = `${pW}W`;
     if (readRthetaRef.current) readRthetaRef.current.textContent = `${rtheta} C/W`;
     if (readStatusRef.current) {
       readStatusRef.current.textContent = status;
@@ -167,7 +219,9 @@ export default function ThermalGPUMap() {
           : '#525a55';
     }
     if (timestampRef.current) {
-      const d = new Date(now);
+      // Wall clock — the old `new Date(now)` fed a performance.now()
+      // timestamp into Date, rendering a time near the 1970 epoch.
+      const d = new Date();
       const pad2 = (n: number) => String(n).padStart(2, '0');
       timestampRef.current.textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
     }
@@ -322,11 +376,16 @@ export default function ThermalGPUMap() {
           <span style={{ fontSize: 8.5, color: '#2E2E3E', marginLeft: 4 }}>cold → critical</span>
         </div>
 
-        {/* Live readouts */}
-        <div style={{ display: 'flex', gap: 20, fontSize: 9.5 }}>
+        {/* Live readouts — T, P and R_θ shown together so R_θ = ΔT/P is
+            verifiable from the panel itself */}
+        <div style={{ display: 'flex', gap: 16, fontSize: 9.5 }}>
           <div>
             <span style={{ color: '#3A332A', marginRight: 5 }}>T_max</span>
             <span ref={readTmaxRef} style={{ color: '#ECE6D8', fontVariantNumeric: 'tabular-nums' }}>—</span>
+          </div>
+          <div>
+            <span style={{ color: '#3A332A', marginRight: 5 }}>P</span>
+            <span ref={readPowerRef} style={{ color: '#ECE6D8', fontVariantNumeric: 'tabular-nums' }}>—</span>
           </div>
           <div>
             <span style={{ color: '#3A332A', marginRight: 5 }}>R_θ</span>

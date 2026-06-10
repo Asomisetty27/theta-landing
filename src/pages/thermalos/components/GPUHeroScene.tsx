@@ -41,7 +41,21 @@ const T = {
 };
 const FM = "'JetBrains Mono', ui-monospace, monospace";
 
-type Phase = 'idle' | 'load' | 'anomaly' | 'critical' | 'recovery';
+// Physically-grounded thermal sim — shared with DataCenterScene/TowerUnit.
+// Replaces this scene's old level-lerp driver and its `0.22 + level * 0.41`
+// R_θ readout, which was (a) ~6× too large for a liquid-cooled H100 and
+// (b) rising with load — the exact opposite of what Theta detects.
+import {
+  ThermalSim,
+  H100_SXM,
+  phaseAt as modelPhaseAt,
+  thermalHex as modelThermalHex,
+  fmtRth,
+  type Phase as ModelPhase,
+  type Telemetry,
+} from './thermalModel';
+
+type Phase = ModelPhase;
 type AnimStage = 'exploded' | 'assembling' | 'assembled' | 'disassembling';
 type CoolerStyle = 'blower' | 'triple-fan' | 'cold-plate' | 'passive-fin';
 type DieLayout = 'monolithic' | 'dual-die' | 'chiplet-grid';
@@ -103,14 +117,6 @@ const LAYER_OFFSETS: Record<StackProfile, { exploded: number[]; assembled: numbe
   module: { exploded: [-2.75, -1.25, 0.25, 1.65], assembled: [-0.46, -0.30, -0.15, 0.07] },
 };
 
-const PHASE_SEQUENCE: { phase: Phase; dur: number; level: number }[] = [
-  { phase: 'idle',     dur: 3.0, level: 0.12 },
-  { phase: 'load',     dur: 3.2, level: 0.45 },
-  { phase: 'anomaly',  dur: 2.6, level: 0.72 },
-  { phase: 'critical', dur: 2.4, level: 1.0  },
-  { phase: 'recovery', dur: 2.8, level: 0.3  },
-];
-
 // Cinematic reveal cycle — each card runs the same explode → hold → assemble →
 // hold loop, phase-offset by index so the runway is always mid-motion somewhere
 // (a living showroom, not five synchronized robots).
@@ -131,18 +137,13 @@ function cardStageAt(elapsed: number, index: number): { stage: AnimStage; cycleP
   return { stage: 'disassembling', cycleProgress: (t - acc) / CYCLE.disassembling };
 }
 
-const _c0 = new THREE.Color('#1c6b3a');
-const _c1 = new THREE.Color('#c8942a');
-const _c2 = new THREE.Color('#c85f2a');
-const _c3 = new THREE.Color('#e0392f');
-const _out = new THREE.Color();
+const thermalHex = modelThermalHex;
 
-function thermalHex(t: number): THREE.Color {
-  const x = THREE.MathUtils.clamp(t, 0, 1);
-  if (x < 0.4) return _out.copy(_c0).lerp(_c1, x / 0.4);
-  if (x < 0.7) return _out.copy(_c1).lerp(_c2, (x - 0.4) / 0.3);
-  return _out.copy(_c2).lerp(_c3, (x - 0.7) / 0.3);
-}
+// Hero-card live telemetry — written by the root driver's sim tick, read by
+// GPUCard (fan duty) and PhaseHUD (sensor readouts). Module-ref pattern, no
+// React state in the hot path.
+const _heroFanDuty = { current: 0.12 };
+const _heroTelem: { current: Telemetry | null } = { current: null };
 
 function spring(cur: number, target: number, delta: number, k: number): number {
   return cur + (target - cur) * (1 - Math.exp(-k * delta));
@@ -764,8 +765,13 @@ function GPUCard({
       localLevelRef.current = 0.07 + Math.sin(t * 0.25 + index * 1.9) * 0.035;
     }
 
+    // Fan controller realism: fans track TEMPERATURE through the sim's
+    // lagged fan-duty channel (≈1.6 s controller filter), so RPM audibly
+    // trails the thermal event instead of snapping with it — and keeps
+    // spinning fast during recovery while the card is still shedding heat.
     const fanBase = stage === 'assembled' ? 4 : stage === 'assembling' ? 2.2 : 0.9;
-    const fanSpeed = fanBase + (stage === 'assembled' ? localLevelRef.current * 9 : 0);
+    const fanDuty = isHero ? _heroFanDuty.current : localLevelRef.current;
+    const fanSpeed = fanBase + (stage === 'assembled' ? fanDuty * 11 : 0);
     fanRefs.forEach((ref) => { if (ref.current) ref.current.rotation.y += delta * fanSpeed; });
   });
 
@@ -969,12 +975,14 @@ function DieBlockWrapper({ spec, thermalRef, opacityRef }: { spec: GPUSpec; ther
 // Floating model name plate — visible while exploded, the "ad copy" beat
 function CardNamePlate({ spec, index }: { spec: GPUSpec; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!ref.current) return;
     const { stage } = cardStageAt(state.clock.elapsedTime, index);
     const target = (stage === 'exploded' || stage === 'disassembling') ? 1 : 0;
     const cur = parseFloat(ref.current.dataset.op || '0');
-    const next = cur + (target - cur) * 0.06;
+    // dt-based smoothing — the old 0.06/frame constant ran 2× faster on
+    // 120 Hz displays; exp form is frame-rate independent (k≈3.6/s ≙ 0.06@60fps)
+    const next = cur + (target - cur) * (1 - Math.exp(-3.6 * delta));
     ref.current.dataset.op = String(next);
     ref.current.style.opacity = String(next);
     ref.current.style.transform = `translateY(${(1 - next) * 8}px)`;
@@ -1202,10 +1210,21 @@ function PhaseHUD({ phaseRef, valuesRef }: { phaseRef: React.MutableRefObject<Ph
 
   const phase = phaseRef.current;
   const { level, progress } = valuesRef.current;
+  const telem = _heroTelem.current;
   const isCritical = phase === 'critical';
   const tColor = thermalHex(level).getStyle();
-  const Tj = (38 + level * 56).toFixed(1);
-  const Rtheta = (0.22 + level * 0.41).toFixed(3);
+  // NVML-style sensor readouts from the shared sim: integer °C / integer W,
+  // R_θ = (T_j − T_ref)/P so the three numbers are mutually consistent —
+  // and R_θ stays flat through the load ramp (healthy), only drifting up
+  // when the anomaly begins. That flat-then-drift signature IS the product.
+  const Tj = telem ? `${telem.tjSensor}` : '37';
+  const Pw = telem ? `${telem.pSensor}` : '84';
+  const Rtheta = telem ? fmtRth(telem.rthSensor) : '0.072';
+  const throttled = telem?.throttled ?? false;
+  // Stable-window gate (the agent's window.py analogue): during power
+  // transients R_θ holds its last steady-state value and renders dimmed —
+  // a live ΔT/P mid-transient would read thermal memory, not the cooling path.
+  const rthStale = telem?.rthStale ?? false;
   const labelMap: Record<Phase, string> = {
     idle: 'IDLE', load: 'UNDER LOAD', anomaly: 'ANOMALY DETECTED', critical: 'THERMAL CRITICAL', recovery: 'RECOVERING',
   };
@@ -1229,8 +1248,9 @@ function PhaseHUD({ phaseRef, valuesRef }: { phaseRef: React.MutableRefObject<Ph
         <span style={{ color: 'rgba(226,232,240,0.5)', fontSize: 8, letterSpacing: '0.18em', fontWeight: 400 }}>THETA · DAQ · H100-04</span>
         <span style={{ color: accentColor, fontWeight: 500, fontSize: 9, letterSpacing: '0.08em' }}>{labelMap[phase]}</span>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>T_junction</span><span style={{ color: PLATINUM }}>{Tj} °C</span></div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>R_θ_eff</span><span style={{ color: PLATINUM }}>{Rtheta} °C/W</span></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>T_junction</span><span style={{ color: PLATINUM, fontVariantNumeric: 'tabular-nums' }}>{Tj} °C</span></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>Power</span><span style={{ color: PLATINUM, fontVariantNumeric: 'tabular-nums' }}>{Pw} W{throttled ? ' ▾' : ''}</span></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>R_θ_eff{rthStale ? ' · settling' : ''}</span><span style={{ color: rthStale ? 'rgba(226,232,240,0.4)' : PLATINUM, fontVariantNumeric: 'tabular-nums' }}>{Rtheta} °C/W</span></div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 9 }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>Watching</span><span style={{ color: CHAMPAGNE }}>5 / 5 nodes</span></div>
       <div style={{ height: 1, background: 'rgba(226,232,240,0.08)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${Math.round(progress * 100)}%`, background: accentColor, transition: 'width 0.12s linear' }} />
@@ -1258,20 +1278,25 @@ export default function GPUHeroScene() {
   const camXRef = useRef(0);
 
   useEffect(() => {
+    // First-order RC thermal integration (see thermalModel.ts): junction
+    // temp chases T_ref + R_θ·P with asymmetric heat/cool time constants,
+    // power carries utilization ripple + discrete DVFS throttle steps, and
+    // the sensor model quantizes to integer °C / W at 4 Hz like NVML.
     let raf = 0;
     const start = performance.now();
-    let idx = 0;
-    let phaseStart = 0;
+    let last = start;
+    const sim = new ThermalSim(H100_SXM);
     const tick = (now: number) => {
       const elapsed = (now - start) / 1000;
-      const cur = PHASE_SEQUENCE[idx];
-      const pElapsed = elapsed - phaseStart;
-      const progress = THREE.MathUtils.clamp(pElapsed / cur.dur, 0, 1);
-      phaseRef.current = cur.phase;
-      const nextLevel = idx + 1 < PHASE_SEQUENCE.length ? PHASE_SEQUENCE[idx + 1].level : PHASE_SEQUENCE[0].level;
-      heroLevelRef.current = THREE.MathUtils.lerp(cur.level, nextLevel, progress * progress);
-      valuesRef.current = { level: heroLevelRef.current, progress };
-      if (pElapsed >= cur.dur) { idx = (idx + 1) % PHASE_SEQUENCE.length; phaseStart = elapsed; }
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const { phase, progress } = modelPhaseAt(elapsed);
+      const telem = sim.step(phase, progress, dt, elapsed);
+      phaseRef.current = phase;
+      heroLevelRef.current = telem.glow;
+      _heroFanDuty.current = telem.fan;
+      _heroTelem.current = telem;
+      valuesRef.current = { level: telem.glow, progress };
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

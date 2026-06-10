@@ -36,12 +36,29 @@ const FM = "'JetBrains Mono', ui-monospace, monospace";
 // ──────────────────────────────────────────────────────────────────────────
 
 type Stage = 'establishing' | 'flythrough' | 'focus' | 'incident' | 'pullback';
-type Phase = 'idle' | 'load' | 'anomaly' | 'critical' | 'recovery';
+
+// Shared physically-grounded thermal arc — see thermalModel.ts. Replaces the
+// per-scene `level` script and the `0.071 + level * 0.024` readout, which
+// showed R_θ rising with load (the opposite of Theta's actual claim).
+import {
+  ThermalSim,
+  H100_SXM,
+  PHASE_SEQUENCE,
+  thermalHex,
+  fmtRth,
+  fmtLead,
+  type Phase,
+  type Telemetry,
+} from './thermalModel';
 
 const _stage: { current: Stage } = { current: 'establishing' };
 const _storyT = { current: 0 };          // 0..1 progress through the whole loop
 const _hudOpacity = { current: 0 };
 const _alertPulse = { current: 0 };
+
+// Live telemetry from the incident sim — written by NarrativeDirector,
+// read by DataCenterHUD (same module-ref pattern as _hudOpacity).
+const _dcTelemetry: { current: Telemetry | null } = { current: null };
 
 const LOOP_SECONDS = 36;
 
@@ -52,29 +69,6 @@ const STAGE_SEQUENCE: { stage: Stage; at: number }[] = [
   { stage: 'incident',     at: 18 },
   { stage: 'pullback',     at: 28 },
 ];
-
-// Same thermal arc as GPUHeroScene's PHASE_SEQUENCE — reused verbatim so the
-// "what does an incident look like" curve matches the hardware demo exactly.
-const PHASE_SEQUENCE: { phase: Phase; dur: number; level: number }[] = [
-  { phase: 'idle',     dur: 3.0, level: 0.12 },
-  { phase: 'load',     dur: 3.2, level: 0.45 },
-  { phase: 'anomaly',  dur: 2.6, level: 0.72 },
-  { phase: 'critical', dur: 2.4, level: 1.0  },
-  { phase: 'recovery', dur: 2.8, level: 0.3  },
-];
-
-const _c0 = new THREE.Color('#1c6b3a');
-const _c1 = new THREE.Color('#c8942a');
-const _c2 = new THREE.Color('#c85f2a');
-const _c3 = new THREE.Color('#e0392f');
-const _out = new THREE.Color();
-
-function thermalHex(t: number): THREE.Color {
-  const x = THREE.MathUtils.clamp(t, 0, 1);
-  if (x < 0.4) return _out.copy(_c0).lerp(_c1, x / 0.4);
-  if (x < 0.7) return _out.copy(_c1).lerp(_c2, (x - 0.4) / 0.3);
-  return _out.copy(_c2).lerp(_c3, (x - 0.7) / 0.3);
-}
 
 function spring(cur: number, target: number, delta: number, k: number): number {
   return cur + (target - cur) * (1 - Math.exp(-k * delta));
@@ -541,6 +535,8 @@ function NarrativeDirector({
 }) {
   const phaseIdx = useRef(0);
   const phaseStart = useRef(0);
+  const sim = useRef<ThermalSim | null>(null);
+  if (!sim.current) sim.current = new ThermalSim(H100_SXM);
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime % LOOP_SECONDS;
@@ -556,18 +552,19 @@ function NarrativeDirector({
       1
     );
 
-    // Thermal arc — only progresses meaningfully during incident; otherwise
-    // idles at its resting level so the hero sled reads "calm" elsewhere.
+    // Thermal arc — the incident sim only advances phases during the
+    // incident stage; everywhere else the node physically cools toward idle
+    // (real RC decay, not a spring on an abstract level).
     if (stage === 'incident' || stage === 'focus') {
       const cur = PHASE_SEQUENCE[phaseIdx.current];
       const elapsed = t - phaseStart.current;
       const progress = THREE.MathUtils.clamp(elapsed / cur.dur, 0, 1);
       phaseRef.current = cur.phase;
-      const nextLevel = phaseIdx.current + 1 < PHASE_SEQUENCE.length
-        ? PHASE_SEQUENCE[phaseIdx.current + 1].level
-        : PHASE_SEQUENCE[0].level;
-      thermalLevelRef.current = THREE.MathUtils.lerp(cur.level, nextLevel, progress * progress);
-      valuesRef.current = { level: thermalLevelRef.current, progress };
+
+      const telem = sim.current!.step(cur.phase, progress, delta, state.clock.elapsedTime);
+      _dcTelemetry.current = telem;
+      thermalLevelRef.current = telem.glow;
+      valuesRef.current = { level: telem.glow, progress };
       _alertPulse.current = cur.phase === 'anomaly' || cur.phase === 'critical' ? 1 : 0.3;
 
       if (elapsed >= cur.dur && stage === 'incident') {
@@ -575,11 +572,15 @@ function NarrativeDirector({
         phaseStart.current = t;
       }
     } else {
-      // Reset for the next loop pass once we're back in the calm establishing stage
+      // Calm stages: workload drained, cooling path healthy — the sim keeps
+      // integrating so the sled's glow decays on the real thermal curve.
       phaseIdx.current = 0;
       phaseStart.current = STAGE_SEQUENCE.find((s) => s.stage === 'incident')!.at;
-      thermalLevelRef.current = spring(thermalLevelRef.current, 0.1, delta, 1.5);
-      valuesRef.current = { level: thermalLevelRef.current, progress: 0 };
+      phaseRef.current = 'idle';
+      const telem = sim.current!.step('idle', 1, delta, state.clock.elapsedTime);
+      _dcTelemetry.current = telem;
+      thermalLevelRef.current = telem.glow;
+      valuesRef.current = { level: telem.glow, progress: 0 };
       _alertPulse.current = spring(_alertPulse.current, 0, delta, 2);
     }
 
@@ -611,12 +612,17 @@ export function DataCenterHUD({
 
   const phase = phaseRef.current;
   const { level, progress } = valuesRef.current;
+  const telem = _dcTelemetry.current;
   const isCritical = phase === 'critical';
   const tColor = thermalHex(level).getStyle();
 
-  const Tj      = (36 + level * 54).toFixed(1);
-  const Rtheta  = (0.071 + level * 0.024).toFixed(3);
-  const lead    = (27 - level * 9).toFixed(0);
+  // Physically-derived readouts: integer-°C NVML-style sensor values, and
+  // R_θ computed as (T_j − T_ref)/P so the numbers on screen always satisfy
+  // the formula the page teaches. Falls back to idle figures pre-first-frame.
+  const Tj     = telem ? `${telem.tjSensor}` : '37';
+  const Rtheta = telem ? fmtRth(telem.rthSensor) : '0.072';
+  const Pw     = telem ? `${telem.pSensor}` : '84';
+  const lead   = telem ? fmtLead(telem.leadMin) : '—';
 
   const labelMap: Record<Phase, string> = {
     idle: 'NOMINAL', load: 'UNDER LOAD', anomaly: 'R_θ DRIFT DETECTED',
@@ -654,12 +660,16 @@ export function DataCenterHUD({
         <span style={{ color: tColor }}>{Tj} °C</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ color: T.muted }}>R_θ_eff</span>
-        <span style={{ color: T.text }}>{Rtheta} °C/W</span>
+        <span style={{ color: T.muted }}>Power</span>
+        <span style={{ color: T.text }}>{Pw} W{telem?.throttled ? ' · DVFS' : ''}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ color: T.muted }}>R_θ_eff{telem?.rthStale ? ' · settling' : ''}</span>
+        <span style={{ color: telem?.rthStale ? T.muted : T.text }}>{Rtheta} °C/W</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
         <span style={{ color: T.muted }}>Est. lead time</span>
-        <span style={{ color: T.bp }}>~{lead} min</span>
+        <span style={{ color: T.bp }}>{lead}</span>
       </div>
       <div style={{ height: 2, background: T.s1, borderRadius: 1, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${Math.round(progress * 100)}%`, background: tColor, transition: 'width 0.12s linear' }} />

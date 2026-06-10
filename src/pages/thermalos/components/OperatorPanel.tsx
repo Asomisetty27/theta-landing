@@ -4,14 +4,14 @@ import {
   _towerLevel,
   _towerPhase,
   _towerProgress,
+  _towerTelemetry,
   _alertLog,
   thermalHex,
-  rthetaAt,
-  tjAt,
   HERO_NODE_ID,
   type Phase,
   type AlertLogEntry,
 } from './TowerUnit';
+import { fmtRth, fmtLead, type Telemetry } from './thermalModel';
 
 // Same T/FM tokens as Landing/DataCenterScene/GPUHeroScene — duplicated by
 // convention (each scene file is a self-contained unit; see GPUHeroScene).
@@ -52,12 +52,14 @@ function useDriverTick(hz = 12) {
   }, [hz]);
 }
 
-// Companion nodes hold steady near baseline — small fixed per-node offsets
-// so the grid doesn't look like four copies of the same number.
-const BASELINE_NODES = [
-  { id: 'G-01', offset: 0.01 },
-  { id: 'G-02', offset: -0.015 },
-  { id: 'G-05', offset: 0.02 },
+// Companion nodes hold steady near baseline — realistic per-unit silicon
+// spread: every GPU in a rack lands at a slightly different R_θ (TIM
+// application variance, coolant loop position), and idle temps differ by a
+// degree or two. Numbers obey R_θ = (T_j − 31°C coolant) / P exactly.
+const BASELINE_NODES: { id: string; rth: number; tj: number; p: number }[] = [
+  { id: 'G-01', rth: 0.070, tj: 37, p: 86 },
+  { id: 'G-02', rth: 0.074, tj: 38, p: 95 },
+  { id: 'G-05', rth: 0.071, tj: 37, p: 88 },
 ];
 
 function StatusDot({ color, hot }: { color: string; hot?: boolean }) {
@@ -69,7 +71,9 @@ function StatusDot({ color, hot }: { color: string; hot?: boolean }) {
   );
 }
 
-function NodeCard({ id, level, isHero }: { id: string; level: number; isHero: boolean }) {
+function NodeCard({ id, level, rth, tj, p, isHero }: {
+  id: string; level: number; rth: number; tj: number; p: number; isHero: boolean;
+}) {
   const tColor = thermalHex(level).getStyle();
   const hot = level > 0.55;
   return (
@@ -87,19 +91,18 @@ function NodeCard({ id, level, isHero }: { id: string; level: number; isHero: bo
         <StatusDot color={tColor} hot={hot} />
       </div>
       <div style={{ fontFamily: FM, fontSize: 16, fontWeight: 600, color: tColor, fontVariantNumeric: 'tabular-nums', transition: 'color .35s ease' }}>
-        {rthetaAt(level)}
+        {fmtRth(rth)}
       </div>
-      <div style={{ fontFamily: FM, fontSize: 9, color: T.muted, marginTop: 3 }}>
-        {tjAt(level)}°C · {(178 + level * 42).toFixed(0)}W
+      <div style={{ fontFamily: FM, fontSize: 9, color: T.muted, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
+        {Math.round(tj)}°C · {Math.round(p)}W
       </div>
     </div>
   );
 }
 
-function ReadoutHero({ level, phase, progress }: { level: number; phase: Phase; progress: number }) {
-  const tColor = thermalHex(level).getStyle();
+function ReadoutHero({ telem, phase, progress }: { telem: Telemetry; phase: Phase; progress: number }) {
+  const tColor = thermalHex(telem.glow).getStyle();
   const isCritical = phase === 'critical';
-  const lead = (27 - level * 9).toFixed(0);
   return (
     <div style={{
       background: T.s1,
@@ -113,23 +116,36 @@ function ReadoutHero({ level, phase, progress }: { level: number; phase: Phase; 
           Theta · node {HERO_NODE_ID}
         </span>
         <span style={{ fontFamily: FM, fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', color: isCritical ? T.critical : tColor }}>
-          ● {PHASE_LABEL[phase]}
+          ● {PHASE_LABEL[phase]}{telem.throttled ? ' · DVFS' : ''}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16 }}>
         <div>
-          <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, letterSpacing: '.1em', marginBottom: 2 }}>R_θ_EFF · °C/W</div>
-          <div style={{ fontFamily: FM, fontSize: 30, fontWeight: 600, color: tColor, fontVariantNumeric: 'tabular-nums', transition: 'color .35s ease' }}>
-            {rthetaAt(level)}
+          <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, letterSpacing: '.1em', marginBottom: 2 }}>
+            R_θ_EFF · °C/W{telem.rthStale ? ' · SETTLING' : ''}
+          </div>
+          <div style={{
+            fontFamily: FM, fontSize: 30, fontWeight: 600,
+            color: tColor, fontVariantNumeric: 'tabular-nums',
+            opacity: telem.rthStale ? 0.45 : 1,
+            transition: 'color .35s ease, opacity .35s ease',
+          }}>
+            {fmtRth(telem.rthSensor)}
           </div>
         </div>
         <div>
           <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, letterSpacing: '.1em', marginBottom: 2 }}>T_JUNCTION</div>
-          <div style={{ fontFamily: FM, fontSize: 16, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{tjAt(level)} °C</div>
+          <div style={{ fontFamily: FM, fontSize: 16, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{telem.tjSensor} °C</div>
         </div>
         <div>
-          <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, letterSpacing: '.1em', marginBottom: 2 }}>EST. LEAD TIME</div>
-          <div style={{ fontFamily: FM, fontSize: 16, color: T.bp, fontVariantNumeric: 'tabular-nums' }}>~{lead} min</div>
+          <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, letterSpacing: '.1em', marginBottom: 2 }}>POWER</div>
+          <div style={{ fontFamily: FM, fontSize: 16, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{telem.pSensor} W</div>
+        </div>
+        <div>
+          <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, letterSpacing: '.1em', marginBottom: 2 }}>LEAD TIME</div>
+          <div style={{ fontFamily: FM, fontSize: 16, color: telem.leadMin !== null ? T.bp : T.faint, fontVariantNumeric: 'tabular-nums' }}>
+            {fmtLead(telem.leadMin)}
+          </div>
         </div>
       </div>
       <div style={{ height: 2, background: T.s2, borderRadius: 1, overflow: 'hidden', marginTop: 12 }}>
@@ -186,6 +202,7 @@ export default function OperatorPanel() {
   const level = _towerLevel.current;
   const phase = _towerPhase.current;
   const progress = _towerProgress.current;
+  const telem = _towerTelemetry.current;
   const entries = _alertLog.current;
 
   return (
@@ -209,16 +226,16 @@ export default function OperatorPanel() {
         </span>
       </div>
 
-      <ReadoutHero level={level} phase={phase} progress={progress} />
+      <ReadoutHero telem={telem} phase={phase} progress={progress} />
 
       <div>
         <div style={{ fontFamily: FM, fontSize: 9.5, letterSpacing: '.16em', color: T.faint, textTransform: 'uppercase', marginBottom: 8 }}>
           Rack R-1 · nodes
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-          <NodeCard id={HERO_NODE_ID} level={level} isHero />
+          <NodeCard id={HERO_NODE_ID} level={level} rth={telem.rthSensor} tj={telem.tjSensor} p={telem.pSensor} isHero />
           {BASELINE_NODES.map((n) => (
-            <NodeCard key={n.id} id={n.id} level={Math.max(0.05, 0.1 + n.offset)} isHero={false} />
+            <NodeCard key={n.id} id={n.id} level={0.1} rth={n.rth} tj={n.tj} p={n.p} isHero={false} />
           ))}
         </div>
       </div>
