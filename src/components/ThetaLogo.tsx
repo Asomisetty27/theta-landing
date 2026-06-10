@@ -1,12 +1,11 @@
 /**
- * Theta logo mark — Greek Θ with calibration tick marks at the bar/circle
- * intersections, referencing R_θ as a precision measurement instrument.
+ * Theta logo mark — the lowercase Greek letter θ, set in serif type,
+ * referencing R_θ as the product's core metric.
  *
  * Design rules:
- *  - Circle stroke and bar are identical weight (2.2px at 40×40 base)
- *  - Bar is full diameter (chord at equator) — canonical Θ
- *  - Two perpendicular ticks at each intersection: reads as calibration marks
- *  - Monochromatic: `color` prop propagates as CSS currentColor
+ *  - Rendered as the actual θ glyph (not a custom shape) for maximum legibility at any size
+ *  - Serif face (Georgia) gives the glyph its characteristic oval-with-bar form
+ *  - Monochromatic: `color` prop propagates directly
  *  - Scales cleanly from 14px favicon to billboard
  */
 
@@ -22,43 +21,25 @@ interface ThetaLogoProps {
 }
 
 export function ThetaMark({ size = 32, color = 'currentColor' }: { size?: number; color?: string }) {
-  // Geometry (40×40 unit grid)
-  // Circle: cx=20, cy=20, r=16 → touches at (4,20) and (36,20) on equator
-  // Bar: full diameter chord (x1=4, x2=36, y=20)
-  // Ticks: 3.5px tall, centered on bar endpoints — calibration marks
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+    <span
       aria-hidden="true"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: size,
+        height: size,
+        fontFamily: "'Georgia', 'Times New Roman', serif",
+        fontWeight: 400,
+        fontSize: size * 1.15,
+        lineHeight: 1,
+        color,
+        userSelect: 'none',
+      }}
     >
-      {/* Outer circle */}
-      <circle
-        cx="20"
-        cy="20"
-        r="16"
-        stroke={color}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-      {/* Equatorial bar — full diameter */}
-      <line
-        x1="4"
-        y1="20"
-        x2="36"
-        y2="20"
-        stroke={color}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-      {/* Left calibration tick */}
-      <line x1="4" y1="16.5" x2="4" y2="23.5" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
-      {/* Right calibration tick */}
-      <line x1="36" y1="16.5" x2="36" y2="23.5" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
+      θ
+    </span>
   );
 }
 
