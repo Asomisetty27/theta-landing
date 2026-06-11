@@ -1,4 +1,19 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/thermalos",
+      "destination": "https://amogh.site/thermalos",
+      "permanent": true
+    },
+    {
+      "source": "/thermalos/:path*",
+      "destination": "https://amogh.site/thermalos/:path*",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
