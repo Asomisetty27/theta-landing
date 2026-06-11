@@ -12,7 +12,7 @@
 import * as React from 'react';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FLEET_BASE, researchPath } from './config';
+import { FLEET_BASE, RESEARCH_ORIGIN, researchPath } from './config';
 import { ChevronRight } from 'lucide-react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { animate, stagger } from 'animejs';
@@ -311,13 +311,13 @@ function Nav() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <a href="https://github.com/Asomisetty27/thermalos" target="_blank" rel="noreferrer"
+          <a href="https://github.com/Asomisetty27/theta" target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FM, fontSize: 10.5, padding: '6px 10px', borderRadius: 4, border: `1px solid ${T.border}`, color: T.muted, textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi; (e.currentTarget as HTMLAnchorElement).style.color = T.text; }}
             onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.border; (e.currentTarget as HTMLAnchorElement).style.color = T.muted; }}>
             <GithubIcon s={12} /> github
           </a>
-          <a href="https://pypi.org/project/thermalos/" target="_blank" rel="noreferrer"
+          <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FD, fontSize: 13, fontWeight: 500, padding: '6px 14px', borderRadius: 4, background: T.healthy, color: '#1A1408', textDecoration: 'none', transition: 'opacity .15s' }}
             onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '0.88')}
             onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '1')}>
@@ -479,13 +479,13 @@ function Hero() {
             <InstallBlock />
           </div>
           <div data-h style={{ opacity: 0, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a href="https://github.com/Asomisetty27/thermalos" target="_blank" rel="noreferrer"
+            <a href="https://github.com/Asomisetty27/theta" target="_blank" rel="noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 5, border: `1px solid ${T.borderHi}`, background: 'rgba(17,17,23,.85)', backdropFilter: 'blur(8px)', color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
               onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.muted)}
               onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi)}>
               <GithubIcon /> github
             </a>
-            <a href="https://pypi.org/project/thermalos/" target="_blank" rel="noreferrer"
+            <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 5, border: `1px solid ${T.borderHi}`, background: 'rgba(17,17,23,.85)', backdropFilter: 'blur(8px)', color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
               onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.muted)}
               onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi)}>
@@ -1246,9 +1246,11 @@ function Pricing() {
 
 /* ─── Footer ──────────────────────────────────────────────────────────────── */
 function Footer() {
+  // Research links are cross-domain now (amogh.site hosts the research
+  // surfaces) — plain anchors, not router Links.
   const COLS = [
-    { t: 'product',  ls: [{ l: 'overview', h: FLEET_BASE, int: true }, { l: 'github', h: 'https://github.com/Asomisetty27/thermalos' }, { l: 'live fleet demo', h: FLEET_BASE, int: true }, { l: 'changelog', h: '#' }] },
-    { t: 'research', ls: [{ l: 'stage 1 findings', h: researchPath('findings'), int: true }, { l: 'R_θ metric', h: '#signal' }, { l: 'lead-time testbed', h: researchPath('lab'), int: true }, { l: 'publication', h: researchPath('publication'), int: true }] },
+    { t: 'product',  ls: [{ l: 'overview', h: '#signal' }, { l: 'github', h: 'https://github.com/Asomisetty27/theta' }, { l: 'live fleet demo', h: `${RESEARCH_ORIGIN}${FLEET_BASE}` }, { l: 'changelog', h: 'https://github.com/Asomisetty27/theta/releases' }] },
+    { t: 'research', ls: [{ l: 'stage 1 findings', h: researchPath('findings') }, { l: 'R_θ metric', h: '#signal' }, { l: 'lead-time testbed', h: researchPath('lab') }, { l: 'publication', h: researchPath('publication') }] },
     { t: 'company',  ls: [{ l: 'about', h: '#' }, { l: 'contact', h: 'mailto:asomisetty27@gmail.com' }, { l: 'privacy', h: '#' }, { l: 'MIT license', h: '#' }] },
   ];
   return (
@@ -1645,13 +1647,13 @@ function TerminalDemo() {
             <SectionHead eyebrow="See it run" title={<>90 seconds from<br />pip install to first<br />R_θ reading.</>}
               body={<>The setup wizard walks you through GPU detection, virtual ambient locking, and first classification — all from your terminal. Run <span style={{ fontFamily: FM, color: T.text }}>theta setup</span> after install.</>} />
             <div style={{ marginTop: 28, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <a href="https://pypi.org/project/thermalos/" target="_blank" rel="noreferrer"
+              <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 4, border: `1px solid ${T.borderHi}`, background: T.s1, color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
                 onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.healthy)}
                 onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi)}>
                 <Pulse />&nbsp;view on PyPI
               </a>
-              <a href="https://github.com/Asomisetty27/thermalos#quick-start" target="_blank" rel="noreferrer"
+              <a href="https://github.com/Asomisetty27/theta#quick-start" target="_blank" rel="noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 4, border: `1px solid ${T.border}`, background: 'transparent', color: T.muted, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'color .15s, border-color .15s' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi; (e.currentTarget as HTMLAnchorElement).style.color = T.text; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.border; (e.currentTarget as HTMLAnchorElement).style.color = T.muted; }}>

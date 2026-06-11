@@ -18,19 +18,24 @@
 export const THETA_BASE = '/theta';
 
 // ── Research / OSS surface (ThermalOS) ──────────────────────────────────────
+// The research surfaces live on the portfolio site (amogh.site), NOT here.
+// runtheta.com serves ONLY the client/product end; /thermalos* paths on this
+// domain redirect across. The base constants are kept so inbound legacy
+// links resolve and outbound footer links have one source of truth.
+export const RESEARCH_ORIGIN = 'https://amogh.site';
 export const SITE_BASE = '/thermalos';
 export const FLEET_BASE = '/thermalos/fleet';
 
 // ── Research/admin workspace ────────────────────────────────────────────────
 export const RESEARCH_BASE = '/thermalos/app';
 
-/** Public ThermalOS path, e.g. sitePath() -> '/thermalos'. */
+/** Absolute ThermalOS URL on the research site, e.g. 'https://amogh.site/thermalos'. */
 export const sitePath = (p = ''): string =>
-  p ? `${SITE_BASE}/${p.replace(/^\/+/, '')}` : SITE_BASE;
+  `${RESEARCH_ORIGIN}${p ? `${SITE_BASE}/${p.replace(/^\/+/, '')}` : SITE_BASE}`;
 
-/** ThermalOS app path, e.g. researchPath('lab') -> '/thermalos/app/lab'. */
+/** Absolute ThermalOS app URL, e.g. 'https://amogh.site/thermalos/app/lab'. */
 export const researchPath = (p = ''): string =>
-  p ? `${RESEARCH_BASE}/${p.replace(/^\/+/, '')}` : RESEARCH_BASE;
+  `${RESEARCH_ORIGIN}${p ? `${RESEARCH_BASE}/${p.replace(/^\/+/, '')}` : RESEARCH_BASE}`;
 
 // Research-hub inner route segments. The methodology page is "findings".
 export const RESEARCH_SEGMENTS = [

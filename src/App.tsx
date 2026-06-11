@@ -1,22 +1,30 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { FLEET_BASE, RESEARCH_BASE, SITE_BASE, THETA_BASE } from "./pages/thermalos/config.ts";
+import { RESEARCH_ORIGIN, THETA_BASE } from "./pages/thermalos/config.ts";
 
-const Landing            = lazy(() => import("./pages/thermalos/Landing.tsx"));
-const ThermalOSLayout    = lazy(() => import("./pages/thermalos/ThermalOSLayout.tsx"));
-const FleetDashboard     = lazy(() => import("./pages/thermalos/FleetDashboard.tsx"));
-const AgentControlCenter = lazy(() => import("./pages/thermalos/AgentControlCenter.tsx"));
-const ResearchLanding    = lazy(() => import("./pages/thermalos/ResearchLanding.tsx"));
-const Overview           = lazy(() => import("./pages/thermalos/Overview.tsx"));
-const Publication        = lazy(() => import("./pages/thermalos/Publication.tsx"));
+// runtheta.com is the CLIENT/PRODUCT surface only. All research surfaces
+// (ResearchLanding, FleetDashboard, the /thermalos/app workspace) live on
+// the portfolio site — see RESEARCH_ORIGIN in config.ts. Old /thermalos*
+// links on this domain hard-redirect across, preserving the path.
+const Landing = lazy(() => import("./pages/thermalos/Landing.tsx"));
 
 const queryClient = new QueryClient();
 
 const Blank = () => <div style={{ minHeight: "100vh", background: "#06060A" }} aria-busy="true" />;
+
+// Cross-domain redirect that preserves the full requested path, so
+// runtheta.com/thermalos/app/lab → amogh.site/thermalos/app/lab.
+const ResearchRedirect = () => {
+  const { pathname, search, hash } = useLocation();
+  useEffect(() => {
+    window.location.replace(`${RESEARCH_ORIGIN}${pathname}${search}${hash}`);
+  }, [pathname, search, hash]);
+  return <Blank />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,20 +34,16 @@ const App = () => (
       <BrowserRouter>
         <Suspense fallback={<Blank />}>
           <Routes>
-            {/* ── Public landing ─────────────────────────────────── */}
+            {/* ── Public landing — the product ────────────────────── */}
             <Route path="/" element={<Landing />} />
             <Route path={THETA_BASE} element={<Landing />} />
 
-            {/* ── Research surface ───────────────────────────────── */}
-            <Route path={SITE_BASE} element={<ResearchLanding />} />
-            <Route path={FLEET_BASE} element={<FleetDashboard />} />
+            {/* ── Research moved to the portfolio site ────────────── */}
+            <Route path="/thermalos/*" element={<ResearchRedirect />} />
+            <Route path="/thermalos" element={<ResearchRedirect />} />
 
-            {/* ── Research / advisor workspace ───────────────────── */}
-            <Route path={RESEARCH_BASE} element={<ThermalOSLayout />}>
-              <Route index element={<Overview />} />
-              <Route path="agent"       element={<AgentControlCenter />} />
-              <Route path="publication" element={<Publication />} />
-            </Route>
+            {/* Catch-all → landing */}
+            <Route path="*" element={<Landing />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
