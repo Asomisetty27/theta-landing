@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Theta brand mark: gold theta glyph on dark — matches runtheta.com landing -->
+  <rect width="64" height="64" rx="14" fill="#09090D"/>
+  <ellipse cx="32" cy="32" rx="14" ry="19" fill="none" stroke="#D4AF37" stroke-width="5"/>
+  <line x1="22" y1="32" x2="42" y2="32" stroke="#D4AF37" stroke-width="5" stroke-linecap="round"/>
+</svg>
