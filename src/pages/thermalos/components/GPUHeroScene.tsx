@@ -1289,7 +1289,7 @@ function PostFX({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
           for the live page; the offline video carries the AO quality.
           (4× MSAA + "high" + dpr 1.5: 8×/ultra/dpr2 was 15s a frame and
           indistinguishable after the 1080p downscale.) */}
-      {CAPTURE && <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="medium" />}
+      {CAPTURE && <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="performance" />}
       <DepthOfField target={_dofTarget} focalLength={0.055} bokehScale={2.4} height={480} />
       <Bloom luminanceThreshold={0.55} luminanceSmoothing={0.55} intensity={0.45} radius={1.1} mipmapBlur />
       <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />
@@ -1353,7 +1353,7 @@ export default function GPUHeroScene() {
       <Canvas
         shadows
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.72, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
-        dpr={CAPTURE ? 1.25 : [1, 1.6]}
+        dpr={CAPTURE ? 1 : [1, 1.6]}
         camera={{ position: [LINEUP_X0, 4.6, 14], fov: 38 }}
       >
         <color attach="background" args={[CINE.voidDeep]} />

@@ -7,7 +7,6 @@ import {
   Bloom,
   ChromaticAberration,
   Vignette,
-  N8AO,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
@@ -509,10 +508,9 @@ function PostFX({ bloomRef }: { bloomRef: React.MutableRefObject<number> }) {
   });
   return (
     <EffectComposer multisampling={CAPTURE ? 2 : 0}>
-      {/* AO seats the sleds into rack slots and darkens rail gaps. CAPTURE
-          only — too slow for the live path (caused visible lag); the
-          pre-rendered video carries it. */}
-      {CAPTURE && <N8AO aoRadius={0.7} intensity={2.2} distanceFalloff={1.0} quality="medium" />}
+      {/* No N8AO here even in capture: at this scene's scale (racks 1.4–3.0
+          units, aisle gap 3.2) any useful aoRadius blankets the whole aisle
+          and crushed the capture to near-black. MSAA 2 + bloom carry it. */}
       <Bloom ref={bloomEffectRef} luminanceThreshold={0.32} luminanceSmoothing={0.2} intensity={0.5} radius={0.45} mipmapBlur />
       <ChromaticAberration offset={_caOffset} blendFunction={BlendFunction.NORMAL} radialModulation={false} modulationOffset={0.15} />
       <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />
@@ -574,7 +572,7 @@ export default function DataCenterScene({ hudScale = 1 }: { hudScale?: number })
     <div style={{ position: 'relative', width: '100%', height: '100%', background: T.bg }}>
       <Canvas
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
-        dpr={CAPTURE ? 1.25 : [1, 2]}
+        dpr={CAPTURE ? 1 : [1, 2]}
         camera={{ position: FLIGHT_POINTS[0].toArray(), fov: 42 }}
       >
         <color attach="background" args={[T.bg]} />

@@ -13,7 +13,7 @@ const server = createServer((req, res) => {
 await new Promise(r => server.listen(4176, r));
 const browser = await chromium.launch({ channel: 'chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-await page.goto('http://localhost:4176/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4176/', { waitUntil: 'load' });
 await page.waitForTimeout(9000);
 await page.screenshot({ path: '/tmp/hero-video-live.png' });
 const state = await page.evaluate(() => {
