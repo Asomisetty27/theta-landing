@@ -138,12 +138,11 @@ export function ThetaDivider({ width = 260, color = GOLD, opacity = 0.55 }: {
   return (
     <div aria-hidden style={{ position: 'absolute', top: 0, left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 3, opacity }}>
       <svg width={width} height={h} viewBox={`0 0 ${width} ${h}`}>
-        {/* thick-thin double rule — classic fine-print detail */}
+        {/* single crisp hairline — showroom-clean, no print flourishes */}
         <line x1={0} y1={mid} x2={width / 2 - rx - 6} y2={mid} stroke={color} strokeWidth={1} opacity={0.65} />
         <line x1={width / 2 + rx + 6} y1={mid} x2={width} y2={mid} stroke={color} strokeWidth={1} opacity={0.65} />
-        <line x1={width * 0.1} y1={mid + 3.5} x2={width / 2 - rx - 14} y2={mid + 3.5} stroke={color} strokeWidth={0.5} opacity={0.3} />
-        <line x1={width / 2 + rx + 14} y1={mid + 3.5} x2={width * 0.9} y2={mid + 3.5} stroke={color} strokeWidth={0.5} opacity={0.3} />
-        {/* the θ ellipse, champagne highlight on the upper arc */}
+        {/* the θ ellipse, champagne highlight on the upper arc — reads as
+            studio light catching brushed metal */}
         <ellipse cx={width / 2} cy={mid} rx={rx} ry={ry} fill="none" stroke={color} strokeWidth={1} />
         <path d={`M ${width / 2 - rx * 0.72} ${mid - ry * 0.62} A ${rx} ${ry} 0 0 1 ${width / 2 + rx * 0.72} ${mid - ry * 0.62}`}
           fill="none" stroke="#F5D98A" strokeWidth={1} strokeLinecap="round" opacity={0.9} />

@@ -1280,6 +1280,7 @@ function SceneLights({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
 const SWEEP_HALF = (GPU_SPECS.length - 1) * CARD_SPACING * 0.5 + 3;
 const _camTarget = new THREE.Vector3();
 const _lookTarget = new THREE.Vector3();
+const _capLoopT = { current: 0 }; // capture loop time, exposed for the frame shooter
 
 // ── Authored capture path ──────────────────────────────────────────────────
 // The live site sweeps generically; the video gets a directed camera synced
@@ -1303,14 +1304,14 @@ const CAPTURE_KEYS: { t: number; pos: [number, number, number]; look: [number, n
   { t: 4.8,  pos: [0.5, 3.7, 13.0],    look: [-0.2, 0.25, 0] },   // exploded 3.0–5.6 — full stack + labels framed, margin off left edge
   { t: 7.4,  pos: [-2.6, 3.2, 10.2],   look: [-0.3, 0.25, 0] },   // assembling 5.6–8.0, drift off
   // L40S — arrive on exploded tail (7.8–10.4), watch it close, slow hold
-  { t: 10.2, pos: [-12.4, 2.9, 10.0],  look: [-9.6, 0.3, 0] },
-  { t: 13.8, pos: [-13.6, 2.1, 8.8],   look: [-9.6, 0.22, 0] },   // assembled, slow push-in
-  { t: 17.8, pos: [-11.9, 2.9, 9.3],   look: [-9.6, 0.34, 0] },   // anticipating the 18.6 break
-  { t: 19.8, pos: [-13.2, 3.5, 9.7],   look: [-9.6, 0.42, 0] },   // mid-disassemble exit beat
+  { t: 10.2, pos: [-12.4, 2.9, 11.0],  look: [-9.6, 0.3, 0] },
+  { t: 13.8, pos: [-13.4, 2.4, 11.2],  look: [-9.6, 0.22, 0] },   // assembled, slow push-in (z≥11: the 9.6-wide card cropped both edges at z 8.8)
+  { t: 17.8, pos: [-12.2, 2.9, 10.8],  look: [-9.6, 0.34, 0] },   // anticipating the 18.6 break
+  { t: 19.8, pos: [-13.2, 3.5, 10.8],  look: [-9.6, 0.42, 0] },   // mid-disassemble exit beat
   // A100 — tall blower-card stack: arrive assembled, ride the full explode
   { t: 21.6, pos: [-21.6, 2.4, 9.8],   look: [-19.2, 0.3, 0] },
-  { t: 24.6, pos: [-21.8, 3.4, 10.4],  look: [-19.2, 0.4, 0] },   // disassembling 23.4–25.2, rise
-  { t: 27.0, pos: [-19.5, 4.1, 13.4],  look: [-19.2, 0.25, 0] },  // exploded 25.2–27.8 — full stack framed
+  { t: 24.6, pos: [-21.8, 3.4, 11.4],  look: [-19.2, 0.55, 0] },  // disassembling 23.4–25.2, rise
+  { t: 27.0, pos: [-19.5, 4.1, 14.6],  look: [-19.2, 0.6, 0] },   // exploded 25.2–27.8 — tall stack centered, margin top+bottom
   { t: 29.6, pos: [-15.4, 3.6, 11.2],  look: [-17.5, 0.3, 0] },   // assembling, pull away
   // wide — the whole runway in one calm frame
   { t: 32.4, pos: [0, 5.4, 14.6],      look: [-1.0, 0.4, 0] },
@@ -1318,11 +1319,11 @@ const CAPTURE_KEYS: { t: number; pos: [number, number, number]; look: [number, n
   { t: 35.4, pos: [16.2, 2.6, 9.8],    look: [19.2, 0.3, 0] },    // assembling 33.8–36.2
   { t: 38.8, pos: [15.4, 2.1, 8.8],    look: [19.2, 0.22, 0] },   // assembled drift
   { t: 41.6, pos: [17.0, 2.8, 9.4],    look: [19.2, 0.35, 0] },
-  { t: 43.2, pos: [16.4, 3.4, 8.8],    look: [19.2, 0.5, 0] },    // disassembling 42.0–43.8
+  { t: 43.2, pos: [16.4, 3.4, 9.8],    look: [19.2, 0.5, 0] },    // disassembling 42.0–43.8
   // B200 — arrive assembled, framed as it breaks, then home to the hero
-  { t: 45.4, pos: [6.8, 2.6, 9.6],     look: [9.6, 0.3, 0] },
-  { t: 48.0, pos: [7.6, 3.4, 8.6],     look: [9.6, 0.5, 0] },     // disassembling 46.8–48.6
-  { t: 49.2, pos: [6.4, 2.4, 8.6],     look: [6.0, 0.35, 0] },    // return leg → loops to t=0
+  { t: 45.4, pos: [6.8, 2.6, 10.4],    look: [9.6, 0.3, 0] },
+  { t: 48.0, pos: [7.8, 3.4, 10.6],    look: [9.6, 0.5, 0] },     // disassembling 46.8–48.6
+  { t: 49.2, pos: [6.4, 2.4, 9.4],     look: [6.0, 0.35, 0] },    // return leg → loops to t=0
 ];
 
 function sampleCapturePath(elapsed: number, outPos: THREE.Vector3, outLook: THREE.Vector3) {
@@ -1359,6 +1360,16 @@ function CameraRig({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
     const t = state.clock.elapsedTime;
 
     if (CAPTURE) {
+      // Expose loop time so shoot-scene-frame.mjs can target exact beats —
+      // the warm-up's virtual advance varies run-to-run (same hook as
+      // DataCenterScene). Must mirror the scene clock, not performance.now:
+      // THREE.Clock starts at first frame, so the two differ by mount delay.
+      _capLoopT.current = t % CAPTURE_LOOP_SECONDS;
+      const w0 = window as unknown as Record<string, unknown>;
+      if (!w0.__storyT) {
+        w0.__storyT = () => _capLoopT.current;
+        w0.__storyLoop = CAPTURE_LOOP_SECONDS;
+      }
       // Authored, perfectly-looping path — no noise drift (noise isn't
       // periodic and would break the seamless loop point).
       sampleCapturePath(t, _camTarget, _lookTarget);

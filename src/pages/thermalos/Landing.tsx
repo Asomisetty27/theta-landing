@@ -83,6 +83,21 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* Showroom ceiling wash — a soft champagne light cone from the section's
+ * top edge, like gallery lighting pooling onto a showroom floor. Pure
+ * gradient, no blur cost. Strength stays whisper-quiet (≤.08 peak). */
+function ShowroomLight({ intensity = 1 }: { intensity?: number }) {
+  return (
+    <div aria-hidden style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+      background: `
+        radial-gradient(ellipse 46% 38% at 50% -6%, rgba(245,217,138,${0.07 * intensity}), transparent 72%),
+        radial-gradient(ellipse 70% 24% at 50% 0%, rgba(240,234,220,${0.03 * intensity}), transparent 80%)
+      `,
+    }} />
+  );
+}
+
 function Tag({ children, accent = false }: { children: React.ReactNode; accent?: boolean }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FM, fontSize: 10, letterSpacing: '.03em', padding: '3px 7px', borderRadius: 3, border: `1px solid ${accent ? T.healthy + '55' : T.border}`, color: accent ? T.healthy : T.muted, background: accent ? T.healthy + '0C' : T.s2 }}>
@@ -514,6 +529,7 @@ function Signal() {
   return (
     <section ref={ref} id="signal" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
+      <ShowroomLight intensity={0.7} />
       <ThetaField rings={5} baseR={64} cx="14%" cy="72%" opacity={0.4} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 72, alignItems: 'start' }} className="tos-two-col">
@@ -795,6 +811,7 @@ function Evidence() {
   return (
     <section ref={ref} id="evidence" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
+      <ShowroomLight intensity={0.8} />
       <ThetaField rings={6} baseR={58} cx="86%" cy="16%" opacity={0.35} />
       <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3, zIndex: 1 }} />
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
@@ -872,6 +889,7 @@ function ProductionProof() {
     // the flow texture below has its own radial mask so nothing bleeds
     <section ref={ref} id="production" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
+      <ShowroomLight intensity={1.2} />
       {/* isotherm flow field — behind the glass panels, edge-faded */}
       <div aria-hidden style={{
         position: 'absolute', inset: 0, zIndex: 1,
@@ -989,6 +1007,7 @@ function FeaturesGrid() {
   return (
     <section ref={ref} id="features" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
+      <ShowroomLight intensity={0.8} />
       <ThetaField rings={5} baseR={66} cx="82%" cy="80%" opacity={0.32} glow={false} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-f style={{ opacity: 0, marginBottom: 48 }}>
@@ -1270,6 +1289,7 @@ function Pricing() {
       <ThetaDivider />
       {/* pricing card sits at the center of the contour field — the product
           at the heat source */}
+      <ShowroomLight />
       <ThetaField rings={7} baseR={72} cx="50%" cy="52%" opacity={0.42} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-p style={{ opacity: 0, marginBottom: 48, textAlign: 'center' }}>
@@ -1398,7 +1418,7 @@ function Footer() {
             </div>
           ))}
         </div>
-        <div style={{ borderTop: `1px solid #8A6F2E55`, boxShadow: '0 -3px 0 -2px rgba(138,111,46,.18)', marginTop: 44, paddingTop: 18, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ borderTop: `1px solid #8A6F2E55`, marginTop: 44, paddingTop: 18, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>© 2026 Theta · MIT License</span>
           <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>R_θ = ΔT / P — the one ratio nobody else ships.</span>
         </div>
@@ -1435,7 +1455,7 @@ const STYLES = `
   inset: 0;
   pointer-events: none;
   z-index: 3;
-  opacity: .025;
+  opacity: .012;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 180px;
@@ -1444,11 +1464,14 @@ const STYLES = `
 
 /* ── Glassmorphism panels ───────────────────────────────────────────────── */
 .tos-glass {
-  background: rgba(12,12,18,.68) !important;
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(255,255,255,.055) !important;
-  box-shadow: 0 0 0 0.5px rgba(255,255,255,.04) inset, 0 8px 32px rgba(0,0,0,.35);
+  background: rgba(12,12,18,.62) !important;
+  backdrop-filter: blur(26px) saturate(150%);
+  -webkit-backdrop-filter: blur(26px) saturate(150%);
+  border: 1px solid rgba(255,255,255,.085) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(245,217,138,.08),
+    0 0 0 0.5px rgba(255,255,255,.04) inset,
+    0 16px 48px -16px rgba(0,0,0,.55);
 }
 
 /* ── Gradient border via mask ───────────────────────────────────────────── */
