@@ -7,7 +7,6 @@ import {
   Bloom,
   ChromaticAberration,
   Vignette,
-  N8AO,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
@@ -521,9 +520,9 @@ function PostFX({ bloomRef }: { bloomRef: React.MutableRefObject<number> }) {
   });
   return (
     <EffectComposer multisampling={0}>
-      {/* AO seats the sleds into their rack slots and darkens the rail gaps —
-          the single biggest "rendered vs real" tell at rack-inspection range */}
-      <N8AO aoRadius={0.7} intensity={2.2} distanceFalloff={1.0} quality="medium" halfRes />
+      {/* N8AO removed from the live path — it pushed frame time past budget
+          on mid-tier GPUs (visible lag). It returns in the offline-capture
+          pass when this scene gets the video treatment. */}
       <Bloom ref={bloomEffectRef} luminanceThreshold={0.32} luminanceSmoothing={0.2} intensity={0.5} radius={0.45} mipmapBlur />
       <ChromaticAberration offset={_caOffset} blendFunction={BlendFunction.NORMAL} radialModulation={false} modulationOffset={0.15} />
       <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />

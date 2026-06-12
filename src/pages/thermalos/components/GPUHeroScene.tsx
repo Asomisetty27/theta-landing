@@ -28,6 +28,12 @@ function useGpuMaps(): GpuTextures | null {
 
 RectAreaLightUniformsLib.init();
 
+// Offline-capture mode (?capture=1) — unlocks render settings far too slow
+// for realtime, used by scripts/og/capture-hero.mjs to record the scene
+// frame-by-frame into a video. Never set for real visitors.
+const CAPTURE = typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).has('capture');
+
 const T = {
   bg: '#06060A',
   s1: '#111117',
@@ -1074,7 +1080,7 @@ function Runway({ textures }: { textures: Textures }) {
         <planeGeometry args={[GPU_SPECS.length * CARD_SPACING + 24, 26]} />
         <MeshReflectorMaterial
           blur={[120, 40]}
-          resolution={1024}
+          resolution={CAPTURE ? 2048 : 1024}
           mixBlur={0.5}
           mixStrength={1.8}
           mixContrast={1.1}
@@ -1132,7 +1138,7 @@ function SceneLights({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
       {/* Champagne cyc wash — warm bleed across rear of cards, very low */}
       <rectAreaLight ref={cycRef} position={[0, 3.5, -10]} width={20} height={5} intensity={1.1} color={CINE.hot} />
       {/* Per-card traveling key — tight liquid-platinum spot, deep falloff */}
-      <spotLight ref={spotRef} position={[0, 11, 6]} angle={0.32} penumbra={0.88} intensity={42} color={CINE.rim} distance={22} decay={2.2} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.00018} />
+      <spotLight ref={spotRef} position={[0, 11, 6]} angle={0.32} penumbra={0.88} intensity={42} color={CINE.rim} distance={22} decay={2.2} castShadow shadow-mapSize={CAPTURE ? [4096, 4096] : [2048, 2048]} shadow-bias={-0.00018} />
       {/* Warm blackpoint ambient — barely there */}
       <ambientLight intensity={0.018} color={CINE.void} />
     </>
@@ -1147,6 +1153,61 @@ const SWEEP_HALF = (GPU_SPECS.length - 1) * CARD_SPACING * 0.5 + 3;
 const _camTarget = new THREE.Vector3();
 const _lookTarget = new THREE.Vector3();
 
+// ── Authored capture path ──────────────────────────────────────────────────
+// The live site sweeps generically; the video gets a directed camera synced
+// to the hero H100's cycle phase (hero stage offset: index 2 × STAGGER).
+// One loop = 2 × CYCLE_LEN (25.2s) so the cut back to frame one is seamless:
+//   1. open low 3/4 on the assembled hero — hardware credibility
+//   2. crane up as it explodes — look INTO the separating thermal stack
+//      (die → TIM → cold plate: the exact path R_θ measures)
+//   3. arc out and dolly the lineup while staggered cards hit their poses
+//   4. return arc, settle into the opening framing
+export const CAPTURE_LOOP_SECONDS = CYCLE_LEN * 2;
+// Key times are matched against each card's cycle phase (offset i×STAGGER,
+// mod CYCLE_LEN) so the camera arrives exactly as that card breaks apart or
+// is holding exploded — the camera and the hardware breathe together:
+//   hero(i2): disassembles 1.2–3.0, exploded 3.0–5.6, assembles 5.6–8.0
+//   L40S(i1): exploded →10.4, assembles 10.4–12.8 (watched while framed)
+//   A100(i0): disassembles 10.8–13.0, exploded 13.0–15.6 (tall card stack)
+//   MI300X(i4): disassembles 16.8–18.6, exploded 18.6–21.2
+//   B200(i3): disassembles 21.6–23.4 (framed as it breaks, exit mid-pose)
+const CAPTURE_KEYS: { t: number; pos: [number, number, number]; look: [number, number, number] }[] = [
+  { t: 0.0,  pos: [4.6, 1.5, 8.2],    look: [0, 0.35, 0] },      // hero assembled, low 3/4
+  { t: 2.0,  pos: [3.2, 2.7, 7.2],    look: [0, 0.45, 0] },      // hero disassembling — push in, rise
+  { t: 4.2,  pos: [0.6, 5.4, 6.6],    look: [0, -0.3, 0] },      // hero exploded — look down into the stack
+  { t: 6.8,  pos: [-4.6, 3.4, 9.6],   look: [-0.5, 0.25, 0] },   // hero assembling — arc out left
+  { t: 9.7,  pos: [-12.0, 3.0, 10.5], look: [-9.6, 0.3, 0] },    // L40S: exploded hold → watch it close
+  { t: 12.3, pos: [-19.8, 2.6, 9.6],  look: [-19.2, 0.25, 0] },  // A100: arrives as it breaks apart
+  { t: 15.6, pos: [2.0, 4.6, 13.0],   look: [0.5, 0.3, 0] },     // wide pull-back, traveling right
+  { t: 17.8, pos: [16.6, 2.4, 9.4],   look: [19.2, 0.25, 0] },   // MI300X: disassembling → exploded hold
+  { t: 21.4, pos: [11.6, 3.0, 9.8],   look: [9.6, 0.3, 0] },     // B200: framed just before it breaks
+  { t: 23.4, pos: [8.0, 2.2, 8.8],    look: [4.5, 0.3, 0] },     // exit B200 mid-explode, return to hero
+];
+
+function sampleCapturePath(elapsed: number, outPos: THREE.Vector3, outLook: THREE.Vector3) {
+  const t = elapsed % CAPTURE_LOOP_SECONDS;
+  const n = CAPTURE_KEYS.length;
+  let i = n - 1;
+  for (let k = 0; k < n; k++) {
+    if (t >= CAPTURE_KEYS[k].t) i = k; else break;
+  }
+  const a = CAPTURE_KEYS[i];
+  const b = CAPTURE_KEYS[(i + 1) % n];
+  const span = ((i + 1 === n ? CAPTURE_LOOP_SECONDS : b.t) - a.t);
+  const raw = THREE.MathUtils.clamp((t - a.t) / span, 0, 1);
+  const e = raw * raw * (3 - 2 * raw); // smoothstep per segment
+  outPos.set(
+    THREE.MathUtils.lerp(a.pos[0], b.pos[0], e),
+    THREE.MathUtils.lerp(a.pos[1], b.pos[1], e),
+    THREE.MathUtils.lerp(a.pos[2], b.pos[2], e),
+  );
+  outLook.set(
+    THREE.MathUtils.lerp(a.look[0], b.look[0], e),
+    THREE.MathUtils.lerp(a.look[1], b.look[1], e),
+    THREE.MathUtils.lerp(a.look[2], b.look[2], e),
+  );
+}
+
 function CameraRig({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
   const { camera } = useThree();
   const noiseX = useMemo(() => createNoise3D(), []);
@@ -1155,6 +1216,17 @@ function CameraRig({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
+
+    if (CAPTURE) {
+      // Authored, perfectly-looping path — no noise drift (noise isn't
+      // periodic and would break the seamless loop point).
+      sampleCapturePath(t, _camTarget, _lookTarget);
+      camera.position.copy(_camTarget);
+      camera.lookAt(_lookTarget);
+      camXRef.current = _lookTarget.x; // keeps the traveling key light + DoF on subject
+      return;
+    }
+
     const SWEEP_PERIOD = 34;
     const phase = (t % SWEEP_PERIOD) / SWEEP_PERIOD;
     // Triangle wave 0→1→0 across the runway, eased at the turnarounds
@@ -1190,10 +1262,11 @@ function PostFX({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
     _dofTarget.x = camXRef.current * 0.55;
   });
   return (
-    <EffectComposer multisampling={2}>
-      {/* Screen-space AO — grounds the exploded layers against each other;
-          the gaps between PCB / interposer / cold plate read as real depth */}
-      <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="medium" halfRes />
+    <EffectComposer multisampling={CAPTURE ? 8 : 2}>
+      {/* Screen-space AO — grounds the exploded layers against each other.
+          CAPTURE-only: the pass costs too much frame time on mid-tier GPUs
+          for the live page; the offline video carries the AO quality. */}
+      {CAPTURE && <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="ultra" />}
       <DepthOfField target={_dofTarget} focalLength={0.055} bokehScale={2.4} height={480} />
       <Bloom luminanceThreshold={0.55} luminanceSmoothing={0.55} intensity={0.45} radius={1.1} mipmapBlur />
       <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />
@@ -1322,11 +1395,11 @@ export default function GPUHeroScene() {
   }), []);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '90vh', background: CINE.voidDeep }}>
+    <div style={{ position: 'relative', width: '100%', height: CAPTURE ? '100vh' : '90vh', background: CINE.voidDeep }}>
       <Canvas
         shadows
-        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.72, outputColorSpace: THREE.SRGBColorSpace }}
-        dpr={[1, 1.6]}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.72, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
+        dpr={CAPTURE ? 2 : [1, 1.6]}
         camera={{ position: [LINEUP_X0, 4.6, 14], fov: 38 }}
       >
         <color attach="background" args={[CINE.voidDeep]} />
@@ -1361,8 +1434,10 @@ export default function GPUHeroScene() {
       </Canvas>
 
 
-      <PhaseHUD phaseRef={phaseRef} valuesRef={valuesRef} />
-      <LineupLabel />
+      {/* DOM overlays stay live in the video version too — excluded from
+          capture so the recording is pure scene */}
+      {!CAPTURE && <PhaseHUD phaseRef={phaseRef} valuesRef={valuesRef} />}
+      {!CAPTURE && <LineupLabel />}
     </div>
   );
 }

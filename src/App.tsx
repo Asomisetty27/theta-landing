@@ -11,6 +11,9 @@ import { RESEARCH_ORIGIN, THETA_BASE } from "./pages/thermalos/config.ts";
 // the portfolio site — see RESEARCH_ORIGIN in config.ts. Old /thermalos*
 // links on this domain hard-redirect across, preserving the path.
 const Landing = lazy(() => import("./pages/thermalos/Landing.tsx"));
+// Bare 3D scene, no page chrome — exists solely for the offline video
+// capture pipeline (scripts/og/capture-hero.mjs, ?capture=1).
+const GPUHeroScene = lazy(() => import("./pages/thermalos/components/GPUHeroScene.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -37,6 +40,9 @@ const App = () => (
             {/* ── Public landing — the product ────────────────────── */}
             <Route path="/" element={<Landing />} />
             <Route path={THETA_BASE} element={<Landing />} />
+
+            {/* ── Offline capture (video pipeline only) ───────────── */}
+            <Route path="/capture/hero" element={<GPUHeroScene />} />
 
             {/* ── Research moved to the portfolio site ────────────── */}
             <Route path="/thermalos/*" element={<ResearchRedirect />} />
