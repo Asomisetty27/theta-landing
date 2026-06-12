@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useRef, useMemo, useEffect, useState, Suspense, createContext, useContext } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { RoundedBox, Environment, Html, ContactShadows, MeshReflectorMaterial, Lightformer, Instances, Instance } from '@react-three/drei';
+import { RoundedBox, Environment, Html, ContactShadows, MeshReflectorMaterial, Lightformer, Instances, Instance, useTexture } from '@react-three/drei';
 import {
   EffectComposer,
   Bloom,
@@ -123,8 +123,8 @@ function stackProfileFor(spec: GPUSpec): StackProfile {
 // stack; flat modules (liquid-cooled, no shroud) separate into a much shorter,
 // denser sandwich — the difference IS the story (one needs to move air, one doesn't).
 const LAYER_OFFSETS: Record<StackProfile, { exploded: number[]; assembled: number[] }> = {
-  card:   { exploded: [-4.3, -2.05, 0.35, 4.1],   assembled: [-1.27, -0.97, -0.61, 0.56] },
-  module: { exploded: [-2.75, -1.25, 0.25, 1.65], assembled: [-0.46, -0.30, -0.15, 0.07] },
+  card:   { exploded: [-3.0, -1.45, 0.3, 2.95],   assembled: [-1.27, -0.97, -0.61, 0.56] },
+  module: { exploded: [-2.1, -0.95, 0.2, 1.35],   assembled: [-0.46, -0.30, -0.15, 0.07] },
 };
 
 // Cinematic reveal cycle — each card runs the same explode → hold → assemble →
@@ -368,11 +368,11 @@ function LayerLabel({ text, sub, opacityRef, accent }: { text: string; sub?: str
   });
   return (
     <Html occlude={false} center={false} style={{ pointerEvents: 'none', userSelect: 'none' }}>
-      <div ref={wrapRef} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <div style={{ width: 20, height: 1, background: accent + '55' }} />
+      <div ref={wrapRef} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <div style={{ width: 28, height: 1.5, background: accent }} />
         <div>
-          <div style={{ color: 'rgba(255,255,255,0.62)', fontSize: 8, fontFamily: FM, letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>{text}</div>
-          {sub && <div style={{ color: 'rgba(255,255,255,0.28)', fontSize: 7, fontFamily: FM, whiteSpace: 'nowrap', marginTop: 2 }}>{sub}</div>}
+          <div style={{ color: 'rgba(255,255,255,0.92)', fontSize: 13, fontFamily: FM, fontWeight: 600, letterSpacing: '0.12em', whiteSpace: 'nowrap', textShadow: '0 1px 4px rgba(0,0,0,0.85)' }}>{text}</div>
+          {sub && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: FM, whiteSpace: 'nowrap', marginTop: 2, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}>{sub}</div>}
         </div>
       </div>
     </Html>
@@ -1106,15 +1106,15 @@ function CardNamePlate({ spec, index }: { spec: GPUSpec; index: number }) {
     ref.current.style.transform = `translateY(${(1 - next) * 8}px)`;
   });
   return (
-    <Html position={[0, -3.6, 0]} center occlude={false} style={{ pointerEvents: 'none', userSelect: 'none' }}>
-      <div ref={ref} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-        <div style={{ fontFamily: FM, fontSize: 8.5, letterSpacing: '0.22em', color: spec.accent, marginBottom: 3 }}>
+    <Html position={[0, -2.7, 0]} center occlude={false} style={{ pointerEvents: 'none', userSelect: 'none' }}>
+      <div ref={ref} style={{ textAlign: 'center', whiteSpace: 'nowrap', textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}>
+        <div style={{ fontFamily: FM, fontSize: 11, letterSpacing: '0.28em', color: spec.accent, marginBottom: 4, fontWeight: 600 }}>
           {spec.vendor}
         </div>
-        <div style={{ fontFamily: FM, fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', color: T.text }}>
+        <div style={{ fontFamily: FM, fontSize: 22, fontWeight: 700, letterSpacing: '0.04em', color: '#ffffff' }}>
           {spec.name}
         </div>
-        <div style={{ fontFamily: FM, fontSize: 8, letterSpacing: '0.12em', color: T.muted, marginTop: 2 }}>
+        <div style={{ fontFamily: FM, fontSize: 11, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.62)', marginTop: 4 }}>
           {spec.arch} · {spec.mem}
         </div>
       </div>
@@ -1152,12 +1152,16 @@ function Backdrop() {
     c.width = 8; c.height = 1024;
     const ctx = c.getContext('2d')!;
     const g = ctx.createLinearGradient(0, 0, 0, 1024);
+    // Clean studio cyc: the dominant horizon glow is COOL graphite (reads as a
+    // lit seamless wall), with the champagne kept to a single thin jewelry
+    // line — not the old muddy amber smear.
     g.addColorStop(0.00, CINE.voidDeep);
-    g.addColorStop(0.40, '#0d0e11');
-    g.addColorStop(0.56, '#16171b');
-    g.addColorStop(0.63, '#3a3120');
-    g.addColorStop(0.67, '#a8823f');
-    g.addColorStop(0.71, '#2a2317');
+    g.addColorStop(0.40, '#0e1014');
+    g.addColorStop(0.52, '#1b1f27');
+    g.addColorStop(0.585, '#39414f'); // peak cool studio glow (clean, bright)
+    g.addColorStop(0.625, '#cba768'); // thin champagne kiss
+    g.addColorStop(0.655, '#241f17');
+    g.addColorStop(0.74, '#0b0c0f');
     g.addColorStop(1.00, CINE.voidDeep);
     ctx.fillStyle = g; ctx.fillRect(0, 0, 8, 1024);
     const t = new THREE.CanvasTexture(c);
@@ -1224,6 +1228,15 @@ function Runway({ textures }: { textures: Textures }) {
 //   • Warm blackpoint ambient — never crushes to true black
 // ──────────────────────────────────────────────────────────────────────────
 
+// Generated studio panorama as an equirectangular IBL source (LDR → loaded as
+// a texture and handed to Environment via `map`; `files` would invoke the HDR
+// loader and throw on .png).
+function StudioEnv() {
+  const tex = useTexture('/textures/studio-env.png');
+  useMemo(() => { tex.mapping = THREE.EquirectangularReflectionMapping; tex.colorSpace = THREE.SRGBColorSpace; }, [tex]);
+  return <Environment map={tex} resolution={512} environmentIntensity={0.9} />;
+}
+
 function SceneLights({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
   const stripRef = useRef<THREE.RectAreaLight>(null!);
   const fillRef = useRef<THREE.RectAreaLight>(null!);
@@ -1286,19 +1299,19 @@ export const CAPTURE_LOOP_SECONDS = CYCLE_LEN * 4; // 50.4 s — half-tempo recu
 const CAPTURE_KEYS: { t: number; pos: [number, number, number]; look: [number, number, number] }[] = [
   // hero H100 — assembled → explode → top-down → re-assemble
   { t: 0.0,  pos: [4.6, 1.5, 8.2],     look: [0, 0.35, 0] },
-  { t: 2.4,  pos: [3.4, 2.6, 7.4],     look: [0, 0.45, 0] },      // disassembling 1.2–3.0
-  { t: 4.8,  pos: [0.8, 5.2, 6.8],     look: [0, -0.25, 0] },     // exploded 3.0–5.6, look down in
-  { t: 7.4,  pos: [-2.6, 3.6, 8.6],    look: [-0.3, 0.25, 0] },   // assembling 5.6–8.0, drift off
+  { t: 2.4,  pos: [3.0, 2.8, 9.6],     look: [0, 0.3, 0] },       // disassembling 1.2–3.0
+  { t: 4.8,  pos: [0.5, 3.7, 13.0],    look: [-0.2, 0.25, 0] },   // exploded 3.0–5.6 — full stack + labels framed, margin off left edge
+  { t: 7.4,  pos: [-2.6, 3.2, 10.2],   look: [-0.3, 0.25, 0] },   // assembling 5.6–8.0, drift off
   // L40S — arrive on exploded tail (7.8–10.4), watch it close, slow hold
   { t: 10.2, pos: [-12.4, 2.9, 10.0],  look: [-9.6, 0.3, 0] },
   { t: 13.8, pos: [-13.6, 2.1, 8.8],   look: [-9.6, 0.22, 0] },   // assembled, slow push-in
   { t: 17.8, pos: [-11.9, 2.9, 9.3],   look: [-9.6, 0.34, 0] },   // anticipating the 18.6 break
   { t: 19.8, pos: [-13.2, 3.5, 9.7],   look: [-9.6, 0.42, 0] },   // mid-disassemble exit beat
   // A100 — tall blower-card stack: arrive assembled, ride the full explode
-  { t: 21.6, pos: [-21.6, 2.4, 9.4],   look: [-19.2, 0.3, 0] },
-  { t: 24.6, pos: [-22.4, 3.4, 8.2],   look: [-19.2, 0.6, 0] },   // disassembling 23.4–25.2, rise
-  { t: 27.0, pos: [-19.6, 5.6, 7.4],   look: [-19.2, 0.1, 0] },   // exploded 25.2–27.8, high look-in
-  { t: 29.6, pos: [-15.4, 4.2, 10.4],  look: [-17.5, 0.3, 0] },   // assembling, pull away
+  { t: 21.6, pos: [-21.6, 2.4, 9.8],   look: [-19.2, 0.3, 0] },
+  { t: 24.6, pos: [-21.8, 3.4, 10.4],  look: [-19.2, 0.4, 0] },   // disassembling 23.4–25.2, rise
+  { t: 27.0, pos: [-19.5, 4.1, 13.4],  look: [-19.2, 0.25, 0] },  // exploded 25.2–27.8 — full stack framed
+  { t: 29.6, pos: [-15.4, 3.6, 11.2],  look: [-17.5, 0.3, 0] },   // assembling, pull away
   // wide — the whole runway in one calm frame
   { t: 32.4, pos: [0, 5.4, 14.6],      look: [-1.0, 0.4, 0] },
   // MI300X — watch the final close, hold, exit as it cracks open again
@@ -1402,12 +1415,13 @@ function PostFX({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
           (4× MSAA + "high" + dpr 1.5: 8×/ultra/dpr2 was 15s a frame and
           indistinguishable after the 1080p downscale.) */}
       {CAPTURE && <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="high" />}
-      {/* Tamed DoF — the old bokehScale 2.4 was eating card detail at dwell
-          range; showroom look wants near-crisp everywhere with a whisper of
-          falloff. Lighter vignette for the same reason. */}
-      <DepthOfField target={_dofTarget} focalLength={0.04} bokehScale={1.2} height={480} />
-      <Bloom luminanceThreshold={0.55} luminanceSmoothing={0.55} intensity={0.45} radius={1.1} mipmapBlur />
-      <Vignette offset={0.32} darkness={0.42} eskil={false} blendFunction={BlendFunction.NORMAL} />
+      {/* Near-crisp DoF — the exploded layers ARE the subject, so they must
+          stay sharp across the full depth of the stack. focalLength up (wider
+          in-focus zone), bokehScale way down, and the CoC computed at 1024px
+          (was 480 → upscaled mush). Only the far backdrop falls off now. */}
+      <DepthOfField target={_dofTarget} focalLength={0.11} bokehScale={0.5} height={1024} />
+      <Bloom luminanceThreshold={0.7} luminanceSmoothing={0.5} intensity={0.32} radius={0.85} mipmapBlur />
+      <Vignette offset={0.34} darkness={0.4} eskil={false} blendFunction={BlendFunction.NORMAL} />
     </EffectComposer>
   );
 }
@@ -1467,7 +1481,7 @@ export default function GPUHeroScene() {
     <div style={{ position: 'relative', width: '100%', height: CAPTURE ? '100vh' : '90vh', background: CINE.voidDeep }}>
       <Canvas
         shadows
-        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.72, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.85, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
         dpr={CAPTURE ? 1.5 : [1, 1.6]}
         camera={{ position: [LINEUP_X0, 4.6, 14], fov: 38 }}
       >
@@ -1497,13 +1511,13 @@ export default function GPUHeroScene() {
             card left, and the brand's gold confined to two accents: the
             right side card and the rear horizon band. Gold in reflections,
             not in the air. */}
-        <Environment resolution={256} environmentIntensity={0.5}>
-          <Lightformer form="rect" intensity={4.2} color="#f4f6f9" position={[0, 12, 2]}  scale={[26, 5]} />
-          <Lightformer form="rect" intensity={1.2} color="#dfe7f2" position={[-16, 5, 6]} scale={[5, 9]} />
-          <Lightformer form="rect" intensity={0.85} color="#d4af37" position={[15, 4, -4]} scale={[5, 7]} />
-          <Lightformer form="rect" intensity={0.65} color="#c9a84c" position={[0, 2.2, -14]} scale={[34, 2.4]} />
-          <Lightformer form="circle" intensity={0.35} color="#2c3340" position={[0, -8, 4]} scale={14} />
-        </Environment>
+        {/* Generated studio HDRI drives image-based reflections (the softbox
+            highlights that sell "showroom" on the metal). Visible backdrop
+            stays the procedural cyc — Environment without `background` only
+            affects IBL. SceneLights still own the direct key/fill/rim.
+            LDR .png equirect must be loaded as a texture + passed via `map`;
+            the `files` path runs the HDR/EXR loader and throws on .png. */}
+        <Suspense fallback={null}><StudioEnv /></Suspense>
         <CameraRig camXRef={camXRef} />
         <PostFX camXRef={camXRef} />
       </Canvas>
