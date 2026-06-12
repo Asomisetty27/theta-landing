@@ -56,11 +56,14 @@ import {
   ThermalSim,
   H100_SXM,
   phaseAt as modelPhaseAt,
-  thermalHex as modelThermalHex,
-  fmtRth,
+  thermalRgb,
+  heroTelem as _heroTelem,
+  heroFanDuty as _heroFanDuty,
   type Phase as ModelPhase,
-  type Telemetry,
 } from './thermalModel';
+// HUD lives in the (three-free) video hero module; this scene reuses it so
+// the live-GL fallback and the video version show the identical readout.
+import { PhaseHUD, LineupLabel } from './GPUHeroVideo';
 
 type Phase = ModelPhase;
 type AnimStage = 'exploded' | 'assembling' | 'assembled' | 'disassembling';
@@ -144,13 +147,13 @@ function cardStageAt(elapsed: number, index: number): { stage: AnimStage; cycleP
   return { stage: 'disassembling', cycleProgress: (t - acc) / CYCLE.disassembling };
 }
 
-const thermalHex = modelThermalHex;
-
-// Hero-card live telemetry — written by the root driver's sim tick, read by
-// GPUCard (fan duty) and PhaseHUD (sensor readouts). Module-ref pattern, no
-// React state in the hot path.
-const _heroFanDuty = { current: 0.12 };
-const _heroTelem: { current: Telemetry | null } = { current: null };
+// Adapter over the model's pure-rgb ramp — the model is three-free so the
+// video hero can import it without pulling this chunk.
+const _thermalColor = new THREE.Color();
+function thermalHex(t: number): THREE.Color {
+  const [r, g, b] = thermalRgb(t);
+  return _thermalColor.setRGB(r, g, b);
+}
 
 function spring(cur: number, target: number, delta: number, k: number): number {
   return cur + (target - cur) * (1 - Math.exp(-k * delta));
@@ -1224,6 +1227,11 @@ function CameraRig({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
       camera.position.copy(_camTarget);
       camera.lookAt(_lookTarget);
       camXRef.current = _lookTarget.x; // keeps the traveling key light + DoF on subject
+      // Composition: the live page overlays its headline block on the LEFT
+      // ~40% of the hero. Shift the projection window so the subject sits
+      // right-of-center, never behind the text.
+      const w = state.size.width, h = state.size.height;
+      (camera as THREE.PerspectiveCamera).setViewOffset(w, h, w * 0.12, 0, w, h);
       return;
     }
 
@@ -1262,11 +1270,13 @@ function PostFX({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
     _dofTarget.x = camXRef.current * 0.55;
   });
   return (
-    <EffectComposer multisampling={CAPTURE ? 8 : 2}>
+    <EffectComposer multisampling={2}>
       {/* Screen-space AO — grounds the exploded layers against each other.
           CAPTURE-only: the pass costs too much frame time on mid-tier GPUs
-          for the live page; the offline video carries the AO quality. */}
-      {CAPTURE && <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="ultra" />}
+          for the live page; the offline video carries the AO quality.
+          (4× MSAA + "high" + dpr 1.5: 8×/ultra/dpr2 was 15s a frame and
+          indistinguishable after the 1080p downscale.) */}
+      {CAPTURE && <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="medium" />}
       <DepthOfField target={_dofTarget} focalLength={0.055} bokehScale={2.4} height={480} />
       <Bloom luminanceThreshold={0.55} luminanceSmoothing={0.55} intensity={0.45} radius={1.1} mipmapBlur />
       <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />
@@ -1274,75 +1284,6 @@ function PostFX({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// HUD — Theta's readout on the hero card (H100), bottom-right
-// ──────────────────────────────────────────────────────────────────────────
-
-function PhaseHUD({ phaseRef, valuesRef }: { phaseRef: React.MutableRefObject<Phase>; valuesRef: React.MutableRefObject<{ level: number; progress: number }> }) {
-  const [, force] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => force((n) => n + 1), 120);
-    return () => clearInterval(id);
-  }, []);
-
-  const phase = phaseRef.current;
-  const { level, progress } = valuesRef.current;
-  const telem = _heroTelem.current;
-  const isCritical = phase === 'critical';
-  const tColor = thermalHex(level).getStyle();
-  // NVML-style sensor readouts from the shared sim: integer °C / integer W,
-  // R_θ = (T_j − T_ref)/P so the three numbers are mutually consistent —
-  // and R_θ stays flat through the load ramp (healthy), only drifting up
-  // when the anomaly begins. That flat-then-drift signature IS the product.
-  const Tj = telem ? `${telem.tjSensor}` : '37';
-  const Pw = telem ? `${telem.pSensor}` : '84';
-  const Rtheta = telem ? fmtRth(telem.rthSensor) : '0.072';
-  const throttled = telem?.throttled ?? false;
-  // Stable-window gate (the agent's window.py analogue): during power
-  // transients R_θ holds its last steady-state value and renders dimmed —
-  // a live ΔT/P mid-transient would read thermal memory, not the cooling path.
-  const rthStale = telem?.rthStale ?? false;
-  const labelMap: Record<Phase, string> = {
-    idle: 'IDLE', load: 'UNDER LOAD', anomaly: 'ANOMALY DETECTED', critical: 'THERMAL CRITICAL', recovery: 'RECOVERING',
-  };
-
-  // Luxury palette overrides — platinum text, champagne accents, amber-gold
-  // for critical (instead of harsh red) to keep the warm color harmony.
-  const PLATINUM = '#E2E8F0';
-  const CHAMPAGNE = '#D4AF37';
-  const AMBER_WARN = '#F2B441';
-  const accentColor = isCritical ? AMBER_WARN : CHAMPAGNE;
-
-  return (
-    <div style={{
-      position: 'absolute', bottom: 24, right: 24, width: 232, padding: '12px 14px',
-      background: 'rgba(10,10,11,0.55)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-      border: `0.5px solid rgba(212,175,55,0.22)`, borderRadius: 4,
-      fontFamily: FM, color: PLATINUM, fontSize: 9, lineHeight: 1.8, fontWeight: 300,
-      boxShadow: '0 10px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,232,188,0.04)', pointerEvents: 'none',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ color: 'rgba(226,232,240,0.5)', fontSize: 8, letterSpacing: '0.18em', fontWeight: 400 }}>THETA · DAQ · H100-04</span>
-        <span style={{ color: accentColor, fontWeight: 500, fontSize: 9, letterSpacing: '0.08em' }}>{labelMap[phase]}</span>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>T_junction</span><span style={{ color: PLATINUM, fontVariantNumeric: 'tabular-nums' }}>{Tj} °C</span></div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>Power</span><span style={{ color: PLATINUM, fontVariantNumeric: 'tabular-nums' }}>{Pw} W{throttled ? ' ▾' : ''}</span></div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>R_θ_eff{rthStale ? ' · settling' : ''}</span><span style={{ color: rthStale ? 'rgba(226,232,240,0.4)' : PLATINUM, fontVariantNumeric: 'tabular-nums' }}>{Rtheta} °C/W</span></div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 9 }}><span style={{ color: 'rgba(226,232,240,0.45)' }}>Watching</span><span style={{ color: CHAMPAGNE }}>5 / 5 nodes</span></div>
-      <div style={{ height: 1, background: 'rgba(226,232,240,0.08)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.round(progress * 100)}%`, background: accentColor, transition: 'width 0.12s linear' }} />
-      </div>
-    </div>
-  );
-}
-
-function LineupLabel() {
-  return (
-    <div style={{ position: 'absolute', bottom: 24, left: 24, fontFamily: FM, fontSize: 8.5, letterSpacing: '0.22em', color: 'rgba(226,232,240,0.45)', fontWeight: 300, pointerEvents: 'none' }}>
-      THE FLEET THETA WATCHES · A100 · L40S · H100 · B200 · MI300X
-    </div>
-  );
-}
 
 // ──────────────────────────────────────────────────────────────────────────
 // Root
@@ -1399,7 +1340,7 @@ export default function GPUHeroScene() {
       <Canvas
         shadows
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.72, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
-        dpr={CAPTURE ? 2 : [1, 1.6]}
+        dpr={CAPTURE ? 1.25 : [1, 1.6]}
         camera={{ position: [LINEUP_X0, 4.6, 14], fov: 38 }}
       >
         <color attach="background" args={[CINE.voidDeep]} />

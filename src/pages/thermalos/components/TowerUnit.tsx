@@ -42,11 +42,18 @@ import {
   ThermalSim,
   H100_SXM,
   phaseAt,
-  thermalHex as _thermalHexImpl,
+  thermalRgb,
   fmtRth,
   type Phase as PhaseT,
   type Telemetry,
 } from './thermalModel';
+
+// Adapter over the model's pure-rgb ramp (the model is three-free).
+const _thermalColor = new THREE.Color();
+function _thermalHexImpl(t: number): THREE.Color {
+  const [r, g, b] = thermalRgb(t);
+  return _thermalColor.setRGB(r, g, b);
+}
 
 export type Phase = PhaseT;
 export type AlertLogEntry = { id: number; t: string; phase: Phase; node: string; rtheta: string; msg: string };

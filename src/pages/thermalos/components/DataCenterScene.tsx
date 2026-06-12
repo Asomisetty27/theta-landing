@@ -44,12 +44,20 @@ import {
   ThermalSim,
   H100_SXM,
   PHASE_SEQUENCE,
-  thermalHex,
+  thermalRgb,
+  thermalCss,
   fmtRth,
   fmtLead,
   type Phase,
   type Telemetry,
 } from './thermalModel';
+
+// Adapter over the model's pure-rgb ramp (the model is three-free).
+const _thermalColor = new THREE.Color();
+function thermalHex(t: number): THREE.Color {
+  const [r, g, b] = thermalRgb(t);
+  return _thermalColor.setRGB(r, g, b);
+}
 
 const _stage: { current: Stage } = { current: 'establishing' };
 const _storyT = { current: 0 };          // 0..1 progress through the whole loop
@@ -628,7 +636,7 @@ export function DataCenterHUD({
   const { level, progress } = valuesRef.current;
   const telem = _dcTelemetry.current;
   const isCritical = phase === 'critical';
-  const tColor = thermalHex(level).getStyle();
+  const tColor = thermalCss(level);
 
   // Physically-derived readouts: integer-°C NVML-style sensor values, and
   // R_θ computed as (T_j − T_ref)/P so the numbers on screen always satisfy

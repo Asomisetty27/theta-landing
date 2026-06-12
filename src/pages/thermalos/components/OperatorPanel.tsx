@@ -6,12 +6,11 @@ import {
   _towerProgress,
   _towerTelemetry,
   _alertLog,
-  thermalHex,
   HERO_NODE_ID,
   type Phase,
   type AlertLogEntry,
 } from './TowerUnit';
-import { fmtRth, fmtLead, type Telemetry } from './thermalModel';
+import { fmtRth, fmtLead, thermalCss, type Telemetry } from './thermalModel';
 
 // Same T/FM tokens as Landing/DataCenterScene/GPUHeroScene — duplicated by
 // convention (each scene file is a self-contained unit; see GPUHeroScene).
@@ -74,7 +73,7 @@ function StatusDot({ color, hot }: { color: string; hot?: boolean }) {
 function NodeCard({ id, level, rth, tj, p, isHero }: {
   id: string; level: number; rth: number; tj: number; p: number; isHero: boolean;
 }) {
-  const tColor = thermalHex(level).getStyle();
+  const tColor = thermalCss(level);
   const hot = level > 0.55;
   return (
     <div style={{
@@ -101,7 +100,7 @@ function NodeCard({ id, level, rth, tj, p, isHero }: {
 }
 
 function ReadoutHero({ telem, phase, progress }: { telem: Telemetry; phase: Phase; progress: number }) {
-  const tColor = thermalHex(telem.glow).getStyle();
+  const tColor = thermalCss(telem.glow);
   const isCritical = phase === 'critical';
   return (
     <div style={{

@@ -43,7 +43,16 @@
  *            never quite returns to day-one)
  */
 
-import * as THREE from 'three';
+// Deliberately three-free: this module also feeds the DOM-only video hero
+// (GPUHeroVideo) and OperatorPanel, which must not pull the three.js chunk.
+// The GL scenes wrap thermalRgb() in a local THREE.Color adapter.
+
+function clamp(x: number, lo: number, hi: number): number {
+  return x < lo ? lo : x > hi ? hi : x;
+}
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
 
 export type Phase = 'idle' | 'load' | 'anomaly' | 'critical' | 'recovery';
 
@@ -71,23 +80,47 @@ export function phaseAt(t: number): { idx: number; phase: Phase; progress: numbe
     if (tt < PHASE_STARTS[i] + PHASE_SEQUENCE[i].dur) { idx = i; break; }
   }
   const cur = PHASE_SEQUENCE[idx];
-  const progress = THREE.MathUtils.clamp((tt - PHASE_STARTS[idx]) / cur.dur, 0, 1);
+  const progress = clamp((tt - PHASE_STARTS[idx]) / cur.dur, 0, 1);
   return { idx, phase: cur.phase, progress };
 }
 
 // ── Thermal color ramp (single copy — previously duplicated per scene) ─────
-const _c0 = new THREE.Color('#1c6b3a');
-const _c1 = new THREE.Color('#c8942a');
-const _c2 = new THREE.Color('#c85f2a');
-const _c3 = new THREE.Color('#e0392f');
-const _out = new THREE.Color();
-
-export function thermalHex(t: number): THREE.Color {
-  const x = THREE.MathUtils.clamp(t, 0, 1);
-  if (x < 0.4) return _out.copy(_c0).lerp(_c1, x / 0.4);
-  if (x < 0.7) return _out.copy(_c1).lerp(_c2, (x - 0.4) / 0.3);
-  return _out.copy(_c2).lerp(_c3, (x - 0.7) / 0.3);
+// Stored as LINEAR rgb and interpolated in linear space, exactly matching
+// what THREE.Color did before (hex → linear on construction, linear lerp).
+function srgbToLinear(c: number): number {
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 }
+function linearToSrgb(c: number): number {
+  return c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+}
+function hexToLinear(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [srgbToLinear(((n >> 16) & 255) / 255), srgbToLinear(((n >> 8) & 255) / 255), srgbToLinear((n & 255) / 255)];
+}
+const RAMP: [number, number, number][] = ['#1c6b3a', '#c8942a', '#c85f2a', '#e0392f'].map(hexToLinear) as [number, number, number][];
+const _rgb: [number, number, number] = [0, 0, 0];
+
+/** Linear-space rgb floats for the thermal ramp — feed THREE.Color.setRGB(). */
+export function thermalRgb(t: number): [number, number, number] {
+  const x = clamp(t, 0, 1);
+  let a: [number, number, number], b: [number, number, number], f: number;
+  if (x < 0.4)      { a = RAMP[0]; b = RAMP[1]; f = x / 0.4; }
+  else if (x < 0.7) { a = RAMP[1]; b = RAMP[2]; f = (x - 0.4) / 0.3; }
+  else              { a = RAMP[2]; b = RAMP[3]; f = (x - 0.7) / 0.3; }
+  _rgb[0] = lerp(a[0], b[0], f); _rgb[1] = lerp(a[1], b[1], f); _rgb[2] = lerp(a[2], b[2], f);
+  return _rgb;
+}
+
+/** CSS color string for DOM readouts — sRGB, same as Color.getStyle() was. */
+export function thermalCss(t: number): string {
+  const [r, g, b] = thermalRgb(t);
+  return `rgb(${Math.round(linearToSrgb(r) * 255)},${Math.round(linearToSrgb(g) * 255)},${Math.round(linearToSrgb(b) * 255)})`;
+}
+
+// ── Hero telemetry bus — written by whichever hero is mounted (3D scene or
+// video), read by PhaseHUD and the scene's fan/glow consumers.
+export const heroFanDuty = { current: 0.12 };
+export const heroTelem: { current: Telemetry | null } = { current: null };
 
 // ── Hardware profile ────────────────────────────────────────────────────────
 
@@ -212,14 +245,14 @@ export class ThermalSim {
     switch (phase) {
       case 'anomaly':
         // slow drift, accelerating — ease-in over the phase
-        rthTarget = THREE.MathUtils.lerp(hw.rthBase, hw.rthAnomaly, progress * progress);
+        rthTarget = lerp(hw.rthBase, hw.rthAnomaly, progress * progress);
         break;
       case 'critical':
-        rthTarget = THREE.MathUtils.lerp(hw.rthAnomaly, hw.rthCritical, 1 - Math.pow(1 - progress, 2));
+        rthTarget = lerp(hw.rthAnomaly, hw.rthCritical, 1 - Math.pow(1 - progress, 2));
         break;
       case 'recovery':
         // exponential relaxation toward recovered baseline (slight hysteresis)
-        rthTarget = THREE.MathUtils.lerp(hw.rthCritical, hw.rthRecovered, 1 - Math.exp(-3.4 * progress));
+        rthTarget = lerp(hw.rthCritical, hw.rthRecovered, 1 - Math.exp(-3.4 * progress));
         break;
       default:
         rthTarget = hw.rthBase; // idle AND load: the healthy promise — flat
@@ -276,7 +309,7 @@ export class ThermalSim {
     this.tj += (tEq - this.tj) * (1 - Math.exp(-d / tau));
 
     // ── Fan/pump controller: tracks temperature WITH LAG (never instant) ───
-    const fanTarget = THREE.MathUtils.clamp((this.tj - 40) / 50, 0.12, 1);
+    const fanTarget = clamp((this.tj - 40) / 50, 0.12, 1);
     this.fan += (fanTarget - this.fan) * (1 - Math.exp(-d / 1.6));
 
     // ── Sensor model: 4 Hz sample-and-hold, integer quantization, jitter ───

@@ -16,9 +16,10 @@ import { FLEET_BASE, RESEARCH_ORIGIN, researchPath } from './config';
 import { ChevronRight } from 'lucide-react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { animate, stagger } from 'animejs';
-// three.js / R3F is heavy (~600 kB) — lazy-load so the hero text paints first
-// and the 3D canvas streams in. A height-matched placeholder avoids layout shift.
-const GPUHeroScene = React.lazy(() => import('./components/GPUHeroScene'));
+// Hero is a pre-rendered video loop (GPUHeroVideo) — render-farm quality,
+// zero WebGL cost. It lazy-falls-back to the live three.js scene on video
+// error. Static import: the module is tiny (video element + DOM HUD + sim).
+import GPUHeroVideo from './components/GPUHeroVideo';
 const DataCenterShowcase = React.lazy(() => import('./components/DataCenterShowcase'));
 const OperatorViewShowcase = React.lazy(() => import('./components/OperatorViewShowcase'));
 import ThetaLogo from '../../components/ThetaLogo';
@@ -402,9 +403,7 @@ function Hero() {
     <motion.section ref={heroRef} id="hero" style={{ position: 'relative', opacity: fadeOut }}>
       {/* ── Full-width 3D GPU scene (lazy: streams in after first paint) ── */}
       <div style={{ position: 'relative' }}>
-        <React.Suspense fallback={<div style={{ height: '90vh', background: T.bg }} aria-hidden />}>
-          <GPUHeroScene />
-        </React.Suspense>
+        <GPUHeroVideo />
         {/* Top/bottom fades blend canvas into page bg */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 80, background: `linear-gradient(to bottom, ${T.bg}, transparent)`, pointerEvents: 'none', zIndex: 5 }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 140, background: `linear-gradient(to bottom, transparent, ${T.bg})`, pointerEvents: 'none', zIndex: 5 }} />
