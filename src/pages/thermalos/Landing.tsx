@@ -823,8 +823,8 @@ function Evidence() {
       <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3, zIndex: 1 }} />
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
         <div data-e style={{ opacity: 0, marginBottom: 48 }}>
-          <SectionHead eyebrow="Stage 1 Evidence · controlled-variable thermal memory" title={<>2°C ambient delta<br /><span className="tos-grad-text">3.5× recovery</span> time difference.<br />n=7 trials, single-variable design.</>}
-            body="E004 v2 (2026-06-05, 7 successful trials at two thermal-start conditions): 1800s pre-trial wait + uniform start temperature within each cohort. Cold-start cohort (37°C, n=2): 4.2s power recovery. Warm-start cohort (39°C, n=5): 14.7s ± 1.1s. Within-condition reproducibility T<55°C CV 1.8%, T<42°C CV 1.6% — publication-grade. Same hardware, same workload. The thermal memory effect F1 hypothesized is now demonstrated with a designed experiment." />
+          <SectionHead eyebrow="Stage 1 Evidence · controlled-variable thermal memory" title={<>2°C ambient delta<br /><span className="tos-grad-text">3.5× recovery</span> time difference.<br />n=8 trials, single-variable design.</>}
+            body="E004 v2 (complete 2026-06-11, 8 trials at three thermal-start conditions): 1800s pre-trial wait + uniform start temperature within each cohort. Cold-start cohort (37°C, n=2): 4.2s power recovery. Warm-start cohort (39°C, n=5): 14.7s ± 1.1s — 3.5× within-session. Coldest trial (35°C, n=1, separate session): 8.2s. Within-condition reproducibility T<55°C CV 1.8%, T<42°C CV 1.6% — publication-grade. Same hardware, same workload. The thermal memory effect F1 hypothesized is demonstrated with a designed experiment." />
         </div>
         {/* Evidence grid: custom named areas */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto auto', gap: 16 }} className="tos-evidence-grid">
@@ -863,8 +863,8 @@ function Evidence() {
                   { v: '3.5×',  l: 'recovery delta',    s: '2°C ambient · controlled (F1)' },
                   { v: '1.8%',  l: 'within-group CV',   s: 'T<55°C · warm-start cohort n=5' },
                   { v: '35%',   l: 'R_θ delta',         s: 'cool vs warm start temp (F1)' },
-                  { v: '14',    l: 'child-exit trials',  s: 'v1 (7) + v2 (7 successful)' },
-                  { v: '8,734', l: 'telemetry rows',    s: 'Stage 1 complete · Tesla T4' },
+                  { v: '15',    l: 'child-exit trials',  s: 'v1 (7) + v2 (8, cohort complete)' },
+                  { v: '9,050', l: 'telemetry rows',    s: 'Stage 1 complete · Tesla T4' },
                 ].map((k, i) => (
                   <div key={k.l} style={{ padding: '18px 20px', borderLeft: i > 0 ? `1px solid rgba(255,255,255,.05)` : 'none' }}>
                     <div style={{ fontFamily: FD, fontSize: 30, fontWeight: 600, letterSpacing: '-.03em', fontVariantNumeric: 'tabular-nums', background: 'linear-gradient(135deg, #e8e8f0 0%, #D4AF37 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{k.v}</div>
