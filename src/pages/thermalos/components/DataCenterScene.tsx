@@ -190,11 +190,23 @@ const SLED_GAP = 0.06;
 // seam is a true match-cut, not a jump.
 // ──────────────────────────────────────────────────────────────────────────
 
-const ESTABLISHING_POS  = new THREE.Vector3(0, 14, -10);
+// Crane-shot establishing: low-ish three-quarter view from OUTSIDE the rack
+// field (x < AISLE_X_START so any height is collision-safe) — racks read as
+// towers with the troffer lines above, instead of the old straight-down
+// "dark boxes" overhead at y=14.
+const ESTABLISHING_POS  = new THREE.Vector3(-14.5, 5.2, -5.5);
 const MOUTH_HIGH_POS    = new THREE.Vector3(AISLE_X_START, 12, HERO_AISLE_Z);
 const MOUTH_LOW_POS     = new THREE.Vector3(AISLE_X_START, 1.7, HERO_AISLE_Z);
-const CORRIDOR_POS      = new THREE.Vector3(-1.4, 1.6, HERO_AISLE_Z);
-const HERO_ARRIVAL_POS  = new THREE.Vector3(0.6, 1.55, HERO_AISLE_Z);
+const CORRIDOR_POS      = new THREE.Vector3(-2.6, 1.65, HERO_AISLE_Z);
+// Three-quarter arrival: lateral offset + comfortable distance from the
+// hero rack face (~3.2 units), so the incident reads as "rack in context
+// with its alert ring and neighbors" instead of a point-blank black wall.
+// Arrival stays ON the aisle centerline — zero z-kink means the CatmullRom
+// tangents physically cannot overshoot into either rack wall (two earlier
+// attempts with z-offsets of 0.7 and 0.35 both clipped the opposite row).
+// The oblique incident view comes from the +x offset and the micro-orbit;
+// this is the same framing as the proven pullback beat.
+const HERO_ARRIVAL_POS  = new THREE.Vector3(-2.3, 1.72, HERO_AISLE_Z);
 
 const FLIGHT_POINTS = [
   ESTABLISHING_POS,   // 0 establishing — high overview
@@ -209,17 +221,28 @@ const FLIGHT_POINTS = [
 ];
 const FLIGHT_CURVE = new THREE.CatmullRomCurve3(FLIGHT_POINTS, false, 'catmullrom', 0.4);
 
-const OVERVIEW_LOOK  = new THREE.Vector3(0, 0, RACK_LAYOUT[ROWS - 1].pos[2] * 0.5);
+const OVERVIEW_LOOK  = new THREE.Vector3(2, 1.4, RACK_LAYOUT[ROWS - 1].pos[2] * 0.45);
 const CORRIDOR_LOOK  = new THREE.Vector3(AISLE_X_START + 4, 1.6, HERO_AISLE_Z);
 const TRACKING_LOOK  = new THREE.Vector3(-0.6, 1.5, HERO_AISLE_Z);
-const HERO_LOOK      = new THREE.Vector3(...RACK_LAYOUT[HERO_RACK_INDEX].pos);
+// Look at the hero SLED, not the rack origin — pos[1] is 0 (floor), which
+// tilted every arrival frame down into empty floor.
+const HERO_LOOK      = new THREE.Vector3(RACK_LAYOUT[HERO_RACK_INDEX].pos[0], 1.45, RACK_LAYOUT[HERO_RACK_INDEX].pos[2]);
+
+// Arrival look = hero biased toward the corridor axis — a dead-on stare at
+// the rack face wastes the frame on an unlit wall; keeping the aisle's
+// vanishing point in frame preserves the troffer/corridor depth that makes
+// the incident composition work.
+const ARRIVAL_LOOK = new THREE.Vector3(
+  HERO_LOOK.x * 0.35, 1.47,
+  THREE.MathUtils.lerp(HERO_AISLE_Z, HERO_LOOK.z, 0.5)
+);
 
 const LOOK_POINTS = [
   OVERVIEW_LOOK,   // 0 wide overview
   CORRIDOR_LOOK,   // 1 looking down the corridor ahead
   TRACKING_LOOK,   // 2 still tracking forward down the centerline
   HERO_LOOK,       // 3 focus pull — onto the hero rack
-  HERO_LOOK,       // 4 hold on the hero rack through arrival
+  ARRIVAL_LOOK,    // 4 hold: hero + corridor depth through arrival
   HERO_LOOK,       // 5 still holding as the pull-away begins
   TRACKING_LOOK,   // 6 glancing back down the centerline (mirror of 2)
   CORRIDOR_LOOK,   // 7 corridor recedes behind (mirror of 1)
@@ -406,8 +429,38 @@ function AlertRing() {
 // without per-object LOD switching.
 // ──────────────────────────────────────────────────────────────────────────
 
+// Perforated cold-aisle floor tile — dot-grid canvas, the airflow-tile
+// signature every real datacenter aisle has.
+function makePerfTileTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#17181d';
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = '#0b0c0f';
+  for (let y = 8; y < 128; y += 16) {
+    for (let x = 8; x < 128; x += 16) {
+      ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  // tile seam
+  ctx.strokeStyle = '#101116'; ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 8;
+  return t;
+}
+
 function Environment3D({ textures }: { textures: Textures }) {
   const farZ = RACK_LAYOUT[RACK_LAYOUT.length - 1].pos[2] + 14;
+  const perfTile = useMemo(() => {
+    const t = makePerfTileTexture();
+    t.repeat.set(RACKS_PER_ROW * 1.2, 2.4);
+    return t;
+  }, []);
+  // One aisle corridor per row pair
+  const aisleZs = useMemo(() => Array.from({ length: ROWS }, (_, row) => row * (AISLE_GAP + RACK_D * 2 + 2.4)), []);
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, farZ / 2 - 6]}>
@@ -421,6 +474,42 @@ function Environment3D({ textures }: { textures: Textures }) {
           <meshStandardMaterial color="#0c0c10" roughness={0.6} metalness={0.5} />
         </mesh>
       ))}
+      {/* Perforated cold-aisle floor tiles — one strip per aisle corridor */}
+      {aisleZs.map((z) => (
+        <mesh key={`tile-${z}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, z]}>
+          <planeGeometry args={[RACKS_PER_ROW * RACK_PITCH + 1.2, AISLE_GAP - 0.3]} />
+          <meshStandardMaterial map={perfTile} color="#caccd2" roughness={0.5} metalness={0.45} envMapIntensity={0.7} />
+        </mesh>
+      ))}
+      {/* Rack status LEDs — instanced emissive dots on each faceplate, the
+          "alive" detail bloom picks up. One draw call for the whole floor. */}
+      <Instances limit={160} range={160}>
+        <boxGeometry args={[0.035, 0.035, 0.012]} />
+        <meshBasicMaterial toneMapped={false} />
+        {RACK_LAYOUT.flatMap((r, i) => {
+          const aisleZ = r.row * (AISLE_GAP + RACK_D * 2 + 2.4);
+          const dir = Math.sign(aisleZ - r.pos[2]) || 1; // toward the aisle
+          const faceZ = r.pos[2] + dir * (RACK_D / 2 + 0.012);
+          const seedA = (i * 0.618034) % 1;
+          const seedB = (i * 0.381966) % 1;
+          return [
+            <Instance key={`led-${i}-a`} position={[r.pos[0] - 0.45, 2.6, faceZ]}
+              color={seedA > 0.85 ? '#C8942A' : '#D4AF37'} scale={0.8 + seedA * 0.4} />,
+            <Instance key={`led-${i}-b`} position={[r.pos[0] + 0.42, 2.42 - seedB * 0.5, faceZ]}
+              color={seedB > 0.9 ? '#C85F2A' : '#8a8f98'} scale={0.6 + seedB * 0.4} />,
+          ];
+        })}
+      </Instances>
+      {/* Cable conduits — one dark riser per rack, top of frame → tray level.
+          Vertical texture for the crane/overhead beats. */}
+      <Instances limit={80} range={80}>
+        <boxGeometry args={[0.07, 1.6, 0.07]} />
+        <meshStandardMaterial color="#0e0e12" roughness={0.7} metalness={0.4} />
+        {RACK_LAYOUT.map((r, i) => (
+          <Instance key={`conduit-${i}`}
+            position={[r.pos[0] + ((i % 3) - 1) * 0.18, RACK_H + 0.8, r.pos[2]]} />
+        ))}
+      </Instances>
       {/* Aisle light fixtures — segmented troffers (not continuous bars), the
           visible counterparts to the environment-map strips. Tone-mapped so
           ACES rolls them off instead of clipping to white. */}
@@ -461,8 +550,15 @@ function SceneLights({ thermalLevelRef }: { thermalLevelRef: React.MutableRefObj
       <rectAreaLight position={[0, RACK_H + 4, RACK_LAYOUT[ROWS - 1].pos[2]]} rotation={[Math.PI / 2, 0, 0]} width={6} height={3} intensity={6} color="#9ec0ff" />
       <pointLight position={[-4, 4, RACK_LAYOUT[1].pos[2]]} intensity={2.4} color="#7fa8e0" distance={14} decay={2} />
       <pointLight position={[4, 4, RACK_LAYOUT[2].pos[2]]} intensity={2.0} color="#7fa8e0" distance={14} decay={2} />
-      <pointLight ref={thermalRef} position={[hero.pos[0], RACK_H * 0.6, hero.pos[2]]} distance={6} decay={2} />
-      <ambientLight intensity={0.05} />
+      {/* Thermal light moved INTO the aisle in front of the hero rack — at
+          the rack's own plane it only grazed its face, leaving the incident
+          beat looking at an unlit black wall. From the aisle it washes the
+          hero faceplate, its neighbors, and the floor as the glow ramps. */}
+      <pointLight ref={thermalRef} position={[hero.pos[0], 1.7, HERO_AISLE_Z + 0.7]} distance={7} decay={2} />
+      {/* Constant soft fill at the hero aisle — base visibility for the
+          arrival framing even before the incident glow ramps up */}
+      <pointLight position={[0, 2.2, HERO_AISLE_Z]} intensity={1.3} color="#aebfd4" distance={8} decay={2} />
+      <ambientLight intensity={0.09} />
     </>
   );
 }
@@ -480,12 +576,29 @@ function CameraRig() {
   const posTmp = useRef(new THREE.Vector3());
 
   useFrame((_state, delta) => {
-    const target = storyU(_storyT.current);
+    const t = _storyT.current;
+    const target = storyU(t);
     uState.current = spring(uState.current, target, delta, 1.1);
     const u = THREE.MathUtils.clamp(uState.current, 0, 1);
 
     FLIGHT_CURVE.getPointAt(u, posTmp.current);
     LOOK_CURVE.getPointAt(u, lookTmp.current);
+
+    // Incident micro-orbit — a slow quarter-arc drift around the hero rack
+    // instead of a dead-static hold. Deterministic in story time and
+    // sine-enveloped to zero at both stage boundaries, so the spline path
+    // (and the loop seam) is untouched. Drift is into the open aisle
+    // (-z, +x) — never toward either rack face.
+    const INC = STAGE_SEQUENCE.find((s) => s.stage === 'incident')!.at;
+    const PULL = STAGE_SEQUENCE.find((s) => s.stage === 'pullback')!.at;
+    if (t > INC && t < PULL) {
+      const local = (t - INC) / (PULL - INC);
+      const env = Math.sin(local * Math.PI);
+      const ang = local * Math.PI * 0.5;
+      posTmp.current.x += Math.sin(ang) * 0.9 * env;
+      posTmp.current.z -= (1 - Math.cos(ang)) * 0.3 * env;
+      posTmp.current.y += 0.28 * env;
+    }
 
     camera.position.copy(posTmp.current);
     camera.lookAt(lookTmp.current);
@@ -564,6 +677,13 @@ export default function DataCenterScene({ hudScale = 1 }: { hudScale?: number })
     _storyT.current = 0;
     _hudOpacity.current = 0;
     _alertPulse.current = 0;
+    if (CAPTURE) {
+      // Expose story time so shoot-scene-frame.mjs can target an exact
+      // story beat — the warm-up's virtual-time advance varies run to run,
+      // so "T seconds after warm-up" is not a stable beat reference.
+      (window as unknown as Record<string, unknown>).__storyT = () => _storyT.current;
+      (window as unknown as Record<string, unknown>).__storyLoop = LOOP_SECONDS;
+    }
   }, []);
 
   const textures = useMemo(() => ({ faceplate: makeFaceplateTexture(), rough: makeRoughnessMap() }), []);
@@ -571,7 +691,7 @@ export default function DataCenterScene({ hudScale = 1 }: { hudScale?: number })
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: T.bg }}>
       <Canvas
-        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.28, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
         dpr={CAPTURE ? 1 : [1, 2]}
         camera={{ position: FLIGHT_POINTS[0].toArray(), fov: 42 }}
       >
@@ -588,7 +708,7 @@ export default function DataCenterScene({ hudScale = 1 }: { hudScale?: number })
             reflection; the faint warm rear former separates the hot aisle.
             (Drop-in upgrade path: <Environment files="..."> swaps in a
             generated HDRI with zero other changes.) */}
-        <Environment resolution={256} environmentIntensity={0.75}>
+        <Environment resolution={256} environmentIntensity={0.9}>
           {[0, 9, 18, 27].map((z) => (
             <Lightformer key={z} form="rect" intensity={2.6} color="#cfdcf2"
               position={[0, 9, z]} scale={[2.6, 10]} target={[0, 0, z]} />
