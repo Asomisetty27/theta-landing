@@ -497,8 +497,8 @@ function Hero() {
       {/* ── STATS ROW — sits below canvas ── */}
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px 80px' }}>
         <div data-h style={{ opacity: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 2, borderRadius: 6, overflow: 'hidden', background: T.s2 }}>
-            {HERO_STATS.map((s) => (
+          <div className="tos-hero-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 2, borderRadius: 6, overflow: 'hidden', background: T.s2 }}>
+            {HERO_STATS.map((s, i) => (
               <div key={s.l} style={{
                 background: T.s1,
                 border: `1px solid ${T.border}`,
@@ -507,8 +507,8 @@ function Hero() {
                 boxShadow: `inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.4)`,
               }}>
                 {/* Calibration label */}
-                <div style={{ fontSize: 7.5, letterSpacing: '0.22em', color: T.amber, textTransform: 'uppercase', marginBottom: 12, opacity: 0.7 }}>
-                  ⬚ {s.l.substring(0, 3)}
+                <div style={{ fontFamily: FM, fontSize: 7.5, letterSpacing: '0.22em', color: T.amber, textTransform: 'uppercase', marginBottom: 12, opacity: 0.7 }}>
+                  ⬚ {String(i + 1).padStart(2, '0')} / {String(HERO_STATS.length).padStart(2, '0')}
                 </div>
                 <div style={{ fontFamily: FM, fontSize: 28, fontWeight: 600, letterSpacing: '-.02em', color: T.text, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
                 <div style={{ fontFamily: FM, fontSize: 9, color: T.healthy, marginTop: 6, letterSpacing: '.08em', textTransform: 'uppercase' }}>{s.l}</div>
@@ -592,8 +592,10 @@ function Signal() {
                     <text x="302" y="50" fontFamily={FM} fontSize="11" fill={T.faint}>[ °C/W ]</text>
                   </svg>
                 </div>
-                {/* State table */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FM, fontSize: 11 }}>
+                {/* State table — scroll container so 6 columns can't blow out
+                    the single-column mobile grid (grid children min-width: 0) */}
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table style={{ width: '100%', minWidth: 520, borderCollapse: 'collapse', fontFamily: FM, fontSize: 11 }}>
                   <thead>
                     <tr style={{ background: T.s0 }}>
                       {['STATE', 'R_θ (μ±σ)', 'POWER', 'UTIL', 'P-STATE', 'INTERPRETATION'].map(h => (
@@ -618,6 +620,7 @@ function Signal() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </Panel>
           </div>
@@ -857,7 +860,7 @@ function Evidence() {
               <div style={{ padding: '9px 14px', borderBottom: '1px solid rgba(212,175,55,.1)', background: 'rgba(212,175,55,.04)' }}>
                 <span style={{ fontFamily: FM, fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase', color: T.faint }}>Key numbers · thermal memory demonstration</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 0 }}>
+              <div className="tos-keynum-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 0 }}>
                 {[
                   { v: '3.5×',  l: 'recovery delta',    s: '2°C ambient · controlled (F1)' },
                   { v: '1.8%',  l: 'within-group CV',   s: 'T<55°C · warm-start cohort n=5' },
@@ -1214,7 +1217,7 @@ function CompetitorTable() {
                   <tr>
                     <th style={{ borderBottom: `1px solid ${T.border}`, padding: '14px 20px', textAlign: 'left', fontWeight: 400, fontSize: 9.5, color: T.faint, textTransform: 'uppercase', letterSpacing: '.12em' }}>CAPABILITY</th>
                     {CMP_COLS.map((c, i) => (
-                      <th key={c} style={{ borderBottom: `1px solid ${i === us ? T.healthy : T.border}`, padding: '14px 12px', textAlign: 'center', fontWeight: 400, fontSize: 9.5, color: i === us ? T.healthy : T.faint, background: i === us ? T.healthy + '08' : 'transparent', textTransform: 'uppercase', letterSpacing: '.1em' }}>{c}</th>
+                      <th key={c} className={i === us ? 'tos-cmp-us' : undefined} style={{ borderBottom: `1px solid ${i === us ? T.healthy : T.border}`, padding: '14px 12px', textAlign: 'center', fontWeight: 400, fontSize: 9.5, color: i === us ? T.healthy : T.faint, background: i === us ? T.healthy + '08' : 'transparent', textTransform: 'uppercase', letterSpacing: '.1em' }}>{c}</th>
                     ))}
                   </tr>
                 </thead>
@@ -1223,7 +1226,7 @@ function CompetitorTable() {
                     <tr key={row.cap} style={{ background: ri % 2 === 1 ? T.s0 : 'transparent' }}>
                       <td style={{ borderBottom: `1px solid ${T.border}`, padding: '12px 20px', color: T.text }}>{row.cap}</td>
                       {row.cells.map((m, ci) => (
-                        <td key={ci} style={{ borderBottom: `1px solid ${ci === us ? T.healthy + '44' : T.border}`, padding: '12px', textAlign: 'center', background: ci === us ? T.healthy + '06' : 'transparent' }}>
+                        <td key={ci} className={ci === us ? 'tos-cmp-us' : undefined} style={{ borderBottom: `1px solid ${ci === us ? T.healthy + '44' : T.border}`, padding: '12px', textAlign: 'center', background: ci === us ? T.healthy + '06' : 'transparent' }}>
                           <MarkCell m={m} us={ci === us} />
                         </td>
                       ))}
@@ -1264,7 +1267,9 @@ function useCountUp(value: number, fmt: (n: number) => string) {
 
 function Pricing() {
   const ref = useRef<HTMLElement | null>(null);
-  const inView = useInView(ref, { once: true, amount: 0.2 });
+  // amount kept low: the section is ~1000px tall, so a 0.2 threshold left the
+  // header + card invisible for most of the first viewport of scrolling
+  const inView = useInView(ref, { once: true, amount: 0.05 });
   const [annual, setAnnual] = useState(true);
   const [gpus, setGpus] = useState(80);
   const { price, period, saved } = useMemo(() => {
@@ -1611,6 +1616,9 @@ const STYLES = `
 .tos-feat-oss     { grid-column: 9 / 13; grid-row: 2; }
 
 /* Responsive */
+/* Grid children default to min-width:auto — a wide table inside a 1fr column
+   forces the column past the viewport (the mobile signal-table blowout). */
+.tos-two-col > *, .tos-evidence-grid > *, .tos-features-grid > * { min-width: 0; }
 @media (max-width: 960px) {
   .tos-hero-layout { grid-template-columns: 1fr !important; gap: 48px !important; }
   .tos-two-col { grid-template-columns: 1fr !important; gap: 48px !important; }
@@ -1619,9 +1627,19 @@ const STYLES = `
   .tos-evidence-grid { grid-template-columns: 1fr !important; }
   .tos-footer-grid { grid-template-columns: 1fr 1fr !important; }
   .tos-nav-links { display: none !important; }
+  /* Capability matrix scrolls horizontally — keep the Theta column (the
+     point of the table) pinned and readable while the middle scrolls. */
+  .tos-cmp-us {
+    position: sticky; right: 0;
+    background: #211D17 !important;
+    box-shadow: -10px 0 14px -6px rgba(0,0,0,.55);
+  }
+  .tos-keynum-grid { grid-template-columns: 1fr 1fr !important; }
+  .tos-keynum-grid > div { border-left: none !important; border-top: 1px solid rgba(255,255,255,.05); }
 }
 @media (max-width: 600px) {
   .tos-features-grid { grid-template-columns: 1fr !important; }
+  .tos-hero-stats { grid-template-columns: 1fr !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tos-pulse, [data-bar], [data-trace], [data-h], [data-r], [data-e], [data-f], [data-c], [data-p] {
@@ -1681,11 +1699,20 @@ const DEMO_SCRIPT: TermLine[] = [
 
 function TerminalDemo() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
   const inView  = useInView(wrapRef, { amount: 0.3 });
   const [lines, setLines] = useState<{ text: string; color?: string; cmd?: boolean }[]>([]);
   const [typing, setTyping] = useState<{ text: string; color?: string; cmd?: boolean } | null>(null);
   const [paused, setPaused] = useState(false);
   const cancelRef = useRef(false);
+
+  // The script is taller than the terminal box (overflow: hidden) — without
+  // this the payoff (R_θ readings + zombie alert) renders below the clip and
+  // is never seen. overflow:hidden boxes still scroll programmatically.
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [lines, typing]);
 
   useEffect(() => {
     if (!inView || rm()) {
@@ -1813,7 +1840,7 @@ function TerminalDemo() {
             </div>
 
             {/* Terminal body */}
-            <div style={{
+            <div ref={bodyRef} style={{
               padding: '18px 22px 22px',
               minHeight: 380,
               maxHeight: 440,
