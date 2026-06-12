@@ -1165,26 +1165,39 @@ const _lookTarget = new THREE.Vector3();
 //      (die → TIM → cold plate: the exact path R_θ measures)
 //   3. arc out and dolly the lineup while staggered cards hit their poses
 //   4. return arc, settle into the opening framing
-export const CAPTURE_LOOP_SECONDS = CYCLE_LEN * 2;
+export const CAPTURE_LOOP_SECONDS = CYCLE_LEN * 4; // 50.4 s — half-tempo recut
 // Key times are matched against each card's cycle phase (offset i×STAGGER,
-// mod CYCLE_LEN) so the camera arrives exactly as that card breaks apart or
-// is holding exploded — the camera and the hardware breathe together:
-//   hero(i2): disassembles 1.2–3.0, exploded 3.0–5.6, assembles 5.6–8.0
-//   L40S(i1): exploded →10.4, assembles 10.4–12.8 (watched while framed)
-//   A100(i0): disassembles 10.8–13.0, exploded 13.0–15.6 (tall card stack)
-//   MI300X(i4): disassembles 16.8–18.6, exploded 18.6–21.2
-//   B200(i3): disassembles 21.6–23.4 (framed as it breaks, exit mid-pose)
+// mod CYCLE_LEN) so the camera arrives exactly as that card breaks apart —
+// but each card now gets a ~8 s DWELL with slow internal drift instead of a
+// 2.5 s drive-by (the first 25.2 s cut read as sped-up). Disassemble windows
+// (mod 12.6): hero@1.2 · L40S@6.0 · A100@10.8 · MI300X@4.2 · B200@9.0.
 const CAPTURE_KEYS: { t: number; pos: [number, number, number]; look: [number, number, number] }[] = [
-  { t: 0.0,  pos: [4.6, 1.5, 8.2],    look: [0, 0.35, 0] },      // hero assembled, low 3/4
-  { t: 2.0,  pos: [3.2, 2.7, 7.2],    look: [0, 0.45, 0] },      // hero disassembling — push in, rise
-  { t: 4.2,  pos: [0.6, 5.4, 6.6],    look: [0, -0.3, 0] },      // hero exploded — look down into the stack
-  { t: 6.8,  pos: [-4.6, 3.4, 9.6],   look: [-0.5, 0.25, 0] },   // hero assembling — arc out left
-  { t: 9.7,  pos: [-12.0, 3.0, 10.5], look: [-9.6, 0.3, 0] },    // L40S: exploded hold → watch it close
-  { t: 12.3, pos: [-19.8, 2.6, 9.6],  look: [-19.2, 0.25, 0] },  // A100: arrives as it breaks apart
-  { t: 15.6, pos: [2.0, 4.6, 13.0],   look: [0.5, 0.3, 0] },     // wide pull-back, traveling right
-  { t: 17.8, pos: [16.6, 2.4, 9.4],   look: [19.2, 0.25, 0] },   // MI300X: disassembling → exploded hold
-  { t: 21.4, pos: [11.6, 3.0, 9.8],   look: [9.6, 0.3, 0] },     // B200: framed just before it breaks
-  { t: 23.4, pos: [8.0, 2.2, 8.8],    look: [4.5, 0.3, 0] },     // exit B200 mid-explode, return to hero
+  // hero H100 — assembled → explode → top-down → re-assemble
+  { t: 0.0,  pos: [4.6, 1.5, 8.2],     look: [0, 0.35, 0] },
+  { t: 2.4,  pos: [3.4, 2.6, 7.4],     look: [0, 0.45, 0] },      // disassembling 1.2–3.0
+  { t: 4.8,  pos: [0.8, 5.2, 6.8],     look: [0, -0.25, 0] },     // exploded 3.0–5.6, look down in
+  { t: 7.4,  pos: [-2.6, 3.6, 8.6],    look: [-0.3, 0.25, 0] },   // assembling 5.6–8.0, drift off
+  // L40S — arrive on exploded tail (7.8–10.4), watch it close, slow hold
+  { t: 10.2, pos: [-12.4, 2.9, 10.0],  look: [-9.6, 0.3, 0] },
+  { t: 13.8, pos: [-13.6, 2.1, 8.8],   look: [-9.6, 0.22, 0] },   // assembled, slow push-in
+  { t: 17.8, pos: [-11.9, 2.9, 9.3],   look: [-9.6, 0.34, 0] },   // anticipating the 18.6 break
+  { t: 19.8, pos: [-13.2, 3.5, 9.7],   look: [-9.6, 0.42, 0] },   // mid-disassemble exit beat
+  // A100 — tall blower-card stack: arrive assembled, ride the full explode
+  { t: 21.6, pos: [-21.6, 2.4, 9.4],   look: [-19.2, 0.3, 0] },
+  { t: 24.6, pos: [-22.4, 3.4, 8.2],   look: [-19.2, 0.6, 0] },   // disassembling 23.4–25.2, rise
+  { t: 27.0, pos: [-19.6, 5.6, 7.4],   look: [-19.2, 0.1, 0] },   // exploded 25.2–27.8, high look-in
+  { t: 29.6, pos: [-15.4, 4.2, 10.4],  look: [-17.5, 0.3, 0] },   // assembling, pull away
+  // wide — the whole runway in one calm frame
+  { t: 32.4, pos: [0, 5.4, 14.6],      look: [-1.0, 0.4, 0] },
+  // MI300X — watch the final close, hold, exit as it cracks open again
+  { t: 35.4, pos: [16.2, 2.6, 9.8],    look: [19.2, 0.3, 0] },    // assembling 33.8–36.2
+  { t: 38.8, pos: [15.4, 2.1, 8.8],    look: [19.2, 0.22, 0] },   // assembled drift
+  { t: 41.6, pos: [17.0, 2.8, 9.4],    look: [19.2, 0.35, 0] },
+  { t: 43.2, pos: [16.4, 3.4, 8.8],    look: [19.2, 0.5, 0] },    // disassembling 42.0–43.8
+  // B200 — arrive assembled, framed as it breaks, then home to the hero
+  { t: 45.4, pos: [6.8, 2.6, 9.6],     look: [9.6, 0.3, 0] },
+  { t: 48.0, pos: [7.6, 3.4, 8.6],     look: [9.6, 0.5, 0] },     // disassembling 46.8–48.6
+  { t: 49.2, pos: [6.4, 2.4, 8.6],     look: [6.0, 0.35, 0] },    // return leg → loops to t=0
 ];
 
 function sampleCapturePath(elapsed: number, outPos: THREE.Vector3, outLook: THREE.Vector3) {

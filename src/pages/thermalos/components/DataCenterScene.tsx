@@ -7,6 +7,7 @@ import {
   Bloom,
   ChromaticAberration,
   Vignette,
+  N8AO,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
@@ -35,59 +36,39 @@ const FM = "'JetBrains Mono', ui-monospace, monospace";
 // driving the animation.
 // ──────────────────────────────────────────────────────────────────────────
 
-type Stage = 'establishing' | 'flythrough' | 'focus' | 'incident' | 'pullback';
-
 // Shared physically-grounded thermal arc — see thermalModel.ts. Replaces the
 // per-scene `level` script and the `0.071 + level * 0.024` readout, which
 // showed R_θ rising with load (the opposite of Theta's actual claim).
 import {
-  ThermalSim,
-  H100_SXM,
-  PHASE_SEQUENCE,
   thermalRgb,
-  thermalCss,
-  fmtRth,
-  fmtLead,
   type Phase,
-  type Telemetry,
 } from './thermalModel';
+// Story machine, module refs, and DOM overlays live in the (three-free)
+// video module — single source of truth shared by the GL scene and the
+// pre-rendered video version.
+import {
+  DC_LOOP_SECONDS as LOOP_SECONDS,
+  STAGE_SEQUENCE,
+  spring,
+  makeStoryState,
+  stepStory,
+  _stage,
+  _storyT,
+  _hudOpacity,
+  _alertPulse,
+  DataCenterHUD,
+  DataCenterCaption,
+} from './DataCenterVideo';
+
+// Offline-capture mode (?capture=1) — used by scripts/og/capture-scene.mjs.
+const CAPTURE = typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).has('capture');
 
 // Adapter over the model's pure-rgb ramp (the model is three-free).
 const _thermalColor = new THREE.Color();
 function thermalHex(t: number): THREE.Color {
   const [r, g, b] = thermalRgb(t);
   return _thermalColor.setRGB(r, g, b);
-}
-
-const _stage: { current: Stage } = { current: 'establishing' };
-const _storyT = { current: 0 };          // 0..1 progress through the whole loop
-const _hudOpacity = { current: 0 };
-const _alertPulse = { current: 0 };
-
-// Live telemetry from the incident sim — written by NarrativeDirector,
-// read by DataCenterHUD (same module-ref pattern as _hudOpacity).
-const _dcTelemetry: { current: Telemetry | null } = { current: null };
-
-const LOOP_SECONDS = 36;
-
-const STAGE_SEQUENCE: { stage: Stage; at: number }[] = [
-  { stage: 'establishing', at: 0 },
-  { stage: 'flythrough',   at: 6 },
-  { stage: 'focus',        at: 14 },
-  { stage: 'incident',     at: 18 },
-  { stage: 'pullback',     at: 28 },
-];
-
-function spring(cur: number, target: number, delta: number, k: number): number {
-  return cur + (target - cur) * (1 - Math.exp(-k * delta));
-}
-
-function stageAt(t: number): Stage {
-  let s: Stage = STAGE_SEQUENCE[0].stage;
-  for (const row of STAGE_SEQUENCE) {
-    if (t >= row.at) s = row.stage;
-  }
-  return s;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -527,10 +508,11 @@ function PostFX({ bloomRef }: { bloomRef: React.MutableRefObject<number> }) {
     if (bloomEffectRef.current) bloomEffectRef.current.intensity = bloomRef.current;
   });
   return (
-    <EffectComposer multisampling={0}>
-      {/* N8AO removed from the live path — it pushed frame time past budget
-          on mid-tier GPUs (visible lag). It returns in the offline-capture
-          pass when this scene gets the video treatment. */}
+    <EffectComposer multisampling={CAPTURE ? 2 : 0}>
+      {/* AO seats the sleds into rack slots and darkens rail gaps. CAPTURE
+          only — too slow for the live path (caused visible lag); the
+          pre-rendered video carries it. */}
+      {CAPTURE && <N8AO aoRadius={0.7} intensity={2.2} distanceFalloff={1.0} quality="medium" />}
       <Bloom ref={bloomEffectRef} luminanceThreshold={0.32} luminanceSmoothing={0.2} intensity={0.5} radius={0.45} mipmapBlur />
       <ChromaticAberration offset={_caOffset} blendFunction={BlendFunction.NORMAL} radialModulation={false} modulationOffset={0.15} />
       <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />
@@ -555,175 +537,17 @@ function NarrativeDirector({
   phaseRef: React.MutableRefObject<Phase>;
   valuesRef: React.MutableRefObject<{ level: number; progress: number }>;
 }) {
-  const phaseIdx = useRef(0);
-  const phaseStart = useRef(0);
-  const sim = useRef<ThermalSim | null>(null);
-  if (!sim.current) sim.current = new ThermalSim(H100_SXM);
+  const story = useRef(makeStoryState());
 
   useFrame((state, delta) => {
-    const t = state.clock.elapsedTime % LOOP_SECONDS;
-    _storyT.current = t;
-    const stage = stageAt(t);
-    _stage.current = stage;
-
-    // HUD fades in on focus, out on pullback/establishing
-    const hudTarget = stage === 'focus' || stage === 'incident' ? 1 : 0;
-    _hudOpacity.current = THREE.MathUtils.clamp(
-      _hudOpacity.current + (hudTarget - _hudOpacity.current) * Math.min(1, delta * 2.2),
-      0,
-      1
-    );
-
-    // Thermal arc — the incident sim only advances phases during the
-    // incident stage; everywhere else the node physically cools toward idle
-    // (real RC decay, not a spring on an abstract level).
-    if (stage === 'incident' || stage === 'focus') {
-      const cur = PHASE_SEQUENCE[phaseIdx.current];
-      const elapsed = t - phaseStart.current;
-      const progress = THREE.MathUtils.clamp(elapsed / cur.dur, 0, 1);
-      phaseRef.current = cur.phase;
-
-      const telem = sim.current!.step(cur.phase, progress, delta, state.clock.elapsedTime);
-      _dcTelemetry.current = telem;
-      thermalLevelRef.current = telem.glow;
-      valuesRef.current = { level: telem.glow, progress };
-      _alertPulse.current = cur.phase === 'anomaly' || cur.phase === 'critical' ? 1 : 0.3;
-
-      if (elapsed >= cur.dur && stage === 'incident') {
-        phaseIdx.current = (phaseIdx.current + 1) % PHASE_SEQUENCE.length;
-        phaseStart.current = t;
-      }
-    } else {
-      // Calm stages: workload drained, cooling path healthy — the sim keeps
-      // integrating so the sled's glow decays on the real thermal curve.
-      phaseIdx.current = 0;
-      phaseStart.current = STAGE_SEQUENCE.find((s) => s.stage === 'incident')!.at;
-      phaseRef.current = 'idle';
-      const telem = sim.current!.step('idle', 1, delta, state.clock.elapsedTime);
-      _dcTelemetry.current = telem;
-      thermalLevelRef.current = telem.glow;
-      valuesRef.current = { level: telem.glow, progress: 0 };
-      _alertPulse.current = spring(_alertPulse.current, 0, delta, 2);
-    }
-
-    bloomRef.current = 0.25 + thermalLevelRef.current * thermalLevelRef.current * 1.6;
+    // Shared story step (DataCenterVideo.stepStory) — identical logic drives
+    // the DOM-only video overlays, so HUD numbers match in both versions.
+    const level = stepStory(story.current, state.clock.elapsedTime, delta, phaseRef, valuesRef);
+    thermalLevelRef.current = level;
+    bloomRef.current = 0.25 + level * level * 1.6;
   });
 
   return null;
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-// HUD — Theta readout, appears during focus/incident. Ported structure from
-// GPUHeroScene's PhaseHUD; copy rewritten for a fleet-monitoring framing.
-// ──────────────────────────────────────────────────────────────────────────
-
-export function DataCenterHUD({
-  phaseRef,
-  valuesRef,
-  scale = 1,
-}: {
-  phaseRef: React.MutableRefObject<Phase>;
-  valuesRef: React.MutableRefObject<{ level: number; progress: number }>;
-  scale?: number;
-}) {
-  const [, force] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => force((n) => n + 1), 120);
-    return () => clearInterval(id);
-  }, []);
-
-  const phase = phaseRef.current;
-  const { level, progress } = valuesRef.current;
-  const telem = _dcTelemetry.current;
-  const isCritical = phase === 'critical';
-  const tColor = thermalCss(level);
-
-  // Physically-derived readouts: integer-°C NVML-style sensor values, and
-  // R_θ computed as (T_j − T_ref)/P so the numbers on screen always satisfy
-  // the formula the page teaches. Falls back to idle figures pre-first-frame.
-  const Tj     = telem ? `${telem.tjSensor}` : '37';
-  const Rtheta = telem ? fmtRth(telem.rthSensor) : '0.072';
-  const Pw     = telem ? `${telem.pSensor}` : '84';
-  const lead   = telem ? fmtLead(telem.leadMin) : '—';
-
-  const labelMap: Record<Phase, string> = {
-    idle: 'NOMINAL', load: 'UNDER LOAD', anomaly: 'R_θ DRIFT DETECTED',
-    critical: 'INCIDENT — ACTING', recovery: 'RESOLVING',
-  };
-
-  return (
-    <div style={{
-      position: 'absolute',
-      bottom: 24 * scale,
-      right: 24 * scale,
-      width: 248 * scale,
-      padding: `${10 * scale}px ${12 * scale}px`,
-      background: 'rgba(6,6,10,0.88)',
-      backdropFilter: 'blur(8px)',
-      border: `1px solid ${isCritical ? T.critical : T.border}`,
-      borderRadius: 6,
-      fontFamily: FM,
-      color: T.text,
-      fontSize: 9 * scale,
-      lineHeight: 1.7,
-      boxShadow: '0 6px 24px rgba(0,0,0,0.6)',
-      pointerEvents: 'none',
-      opacity: _hudOpacity.current,
-      transition: 'opacity 0.6s ease',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span style={{ color: T.muted, fontSize: 8 * scale, letterSpacing: '0.14em' }}>THETA · NODE B07-04</span>
-        <span style={{ color: isCritical ? T.critical : tColor, fontWeight: 700, fontSize: 9 * scale, letterSpacing: '0.06em' }}>
-          ● {labelMap[phase]}
-        </span>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ color: T.muted }}>T_junction</span>
-        <span style={{ color: tColor }}>{Tj} °C</span>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ color: T.muted }}>Power</span>
-        <span style={{ color: T.text }}>{Pw} W{telem?.throttled ? ' · DVFS' : ''}</span>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ color: T.muted }}>R_θ_eff{telem?.rthStale ? ' · settling' : ''}</span>
-        <span style={{ color: telem?.rthStale ? T.muted : T.text }}>{Rtheta} °C/W</span>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
-        <span style={{ color: T.muted }}>Est. lead time</span>
-        <span style={{ color: T.bp }}>{lead}</span>
-      </div>
-      <div style={{ height: 2, background: T.s1, borderRadius: 1, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.round(progress * 100)}%`, background: tColor, transition: 'width 0.12s linear' }} />
-      </div>
-    </div>
-  );
-}
-
-export function DataCenterCaption() {
-  const [stage, setStage] = useState<Stage>('establishing');
-  useEffect(() => {
-    const id = setInterval(() => setStage(_stage.current), 200);
-    return () => clearInterval(id);
-  }, []);
-  const copy: Record<Stage, string> = {
-    establishing: 'A fleet of GPUs, running flat out.',
-    flythrough:   'Theta watches every node — not just util and power.',
-    focus:        'One node’s thermal path is starting to drift.',
-    incident:     'R_θ catches it before throttling does — with lead time to act.',
-    pullback:     'Theta is watching every node like this, all the time.',
-  };
-  return (
-    <div style={{
-      position: 'absolute', bottom: 24, left: 24,
-      fontFamily: FM, fontSize: 11, letterSpacing: '0.02em',
-      color: T.text, opacity: 0.8, maxWidth: 360,
-      pointerEvents: 'none', textShadow: '0 2px 12px rgba(0,0,0,0.7)',
-      transition: 'opacity 0.6s ease',
-    }}>
-      {copy[stage]}
-    </div>
-  );
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -749,8 +573,8 @@ export default function DataCenterScene({ hudScale = 1 }: { hudScale?: number })
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: T.bg }}>
       <Canvas
-        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, outputColorSpace: THREE.SRGBColorSpace }}
-        dpr={[1, 2]}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
+        dpr={CAPTURE ? 1.25 : [1, 2]}
         camera={{ position: FLIGHT_POINTS[0].toArray(), fov: 42 }}
       >
         <color attach="background" args={[T.bg]} />
@@ -780,8 +604,10 @@ export default function DataCenterScene({ hudScale = 1 }: { hudScale?: number })
         <PostFX bloomRef={bloomRef} />
       </Canvas>
 
-      <DataCenterHUD phaseRef={phaseRef} valuesRef={valuesRef} scale={hudScale} />
-      <DataCenterCaption />
+      {/* DOM overlays stay live over the video version too — excluded from
+          capture so the recording is pure scene */}
+      {!CAPTURE && <DataCenterHUD phaseRef={phaseRef} valuesRef={valuesRef} scale={hudScale} />}
+      {!CAPTURE && <DataCenterCaption />}
     </div>
   );
 }

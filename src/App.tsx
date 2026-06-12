@@ -14,6 +14,7 @@ const Landing = lazy(() => import("./pages/thermalos/Landing.tsx"));
 // Bare 3D scene, no page chrome — exists solely for the offline video
 // capture pipeline (scripts/og/capture-hero.mjs, ?capture=1).
 const GPUHeroScene = lazy(() => import("./pages/thermalos/components/GPUHeroScene.tsx"));
+const DataCenterScene = lazy(() => import("./pages/thermalos/components/DataCenterScene.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
 
             {/* ── Offline capture (video pipeline only) ───────────── */}
             <Route path="/capture/hero" element={<GPUHeroScene />} />
+            <Route path="/capture/datacenter" element={<div style={{ height: "100vh" }}><DataCenterScene /></div>} />
 
             {/* ── Research moved to the portfolio site ────────────── */}
             <Route path="/thermalos/*" element={<ResearchRedirect />} />

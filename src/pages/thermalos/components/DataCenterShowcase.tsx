@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 
-const DataCenterScene = React.lazy(() => import('./DataCenterScene'));
+// Pre-rendered video version (tiny chunk; the GL scene is its error
+// fallback). Lazy + visibility-gated so the 14 MB video only fetches when
+// the section approaches the viewport.
+const DataCenterScene = React.lazy(() => import('./DataCenterVideo'));
 
 const T = {
   bg: '#06060A',
