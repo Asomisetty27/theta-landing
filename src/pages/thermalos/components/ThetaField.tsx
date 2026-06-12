@@ -64,7 +64,6 @@ export function ThetaField({
         key={i}
         cx={cxN} cy={cyN} rx={r} ry={ry}
         fill="none"
-        stroke={GOLD}
         strokeWidth={0.8}
         strokeDasharray={dashed ? '5 11' : undefined}
         opacity={o}
@@ -78,13 +77,15 @@ export function ThetaField({
           key={`${i}${sx}`}
           x1={cxN + sx * r} y1={cyN - 5}
           x2={cxN + sx * r} y2={cyN + 5}
-          stroke={GOLD} strokeWidth={0.8} opacity={o * 0.9}
+          strokeWidth={0.8} opacity={o * 0.9}
         />,
       );
     }
   }
 
   const gradId = React.useId();
+  const foilId = React.useId();
+  const maxR = baseR * Math.pow(growth, rings - 1) * 1.32;
 
   return (
     <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0, opacity, ...style }}>
@@ -93,22 +94,31 @@ export function ThetaField({
         preserveAspectRatio="xMidYMid slice"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       >
-        {glow && (
-          <>
-            <defs>
-              <radialGradient id={gradId} cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor={GOLD} stopOpacity="0.10" />
-                <stop offset="60%" stopColor={GOLD} stopOpacity="0.03" />
-                <stop offset="100%" stopColor={GOLD} stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            <ellipse cx={cxN} cy={cyN} rx={baseR * 3.4} ry={baseR * 4.2} fill={`url(#${gradId})`} />
-          </>
-        )}
+        <defs>
+          {/* metallic light-from-above: strokes catch champagne highlight at
+              the top of the field and fall to deep gold below — gold as a
+              material, not a flat color */}
+          <linearGradient id={foilId} gradientUnits="userSpaceOnUse"
+            x1={cxN} y1={cyN - maxR} x2={cxN} y2={cyN + maxR}>
+            <stop offset="0%" stopColor="#F5D98A" />
+            <stop offset="45%" stopColor={GOLD} />
+            <stop offset="100%" stopColor="#7A6526" />
+          </linearGradient>
+          {glow && (
+            <radialGradient id={gradId} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={GOLD} stopOpacity="0.10" />
+              <stop offset="60%" stopColor={GOLD} stopOpacity="0.03" />
+              <stop offset="100%" stopColor={GOLD} stopOpacity="0" />
+            </radialGradient>
+          )}
+        </defs>
+        {glow && <ellipse cx={cxN} cy={cyN} rx={baseR * 3.4} ry={baseR * 4.2} fill={`url(#${gradId})`} />}
         {/* the crossbar — full-bleed hairline through the field center */}
-        <line x1={0} y1={cyN} x2={W} y2={cyN} stroke={GOLD} strokeWidth={0.7} opacity={0.22} />
-        {ringEls}
-        {tickEls}
+        <line x1={0} y1={cyN} x2={W} y2={cyN} stroke={`url(#${foilId})`} strokeWidth={0.7} opacity={0.25} />
+        <g stroke={`url(#${foilId})`}>
+          {ringEls}
+          {tickEls}
+        </g>
       </svg>
     </div>
   );
@@ -122,15 +132,22 @@ export function ThetaDivider({ width = 260, color = GOLD, opacity = 0.55 }: {
   color?: string;
   opacity?: number;
 }) {
-  const h = 18;
+  const h = 22;
   const rx = 11; const ry = 7.5;
+  const mid = h / 2;
   return (
     <div aria-hidden style={{ position: 'absolute', top: 0, left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 3, opacity }}>
       <svg width={width} height={h} viewBox={`0 0 ${width} ${h}`}>
-        <line x1={0} y1={h / 2} x2={width / 2 - rx - 4} y2={h / 2} stroke={color} strokeWidth={1} opacity={0.6} />
-        <line x1={width / 2 + rx + 4} y1={h / 2} x2={width} y2={h / 2} stroke={color} strokeWidth={1} opacity={0.6} />
-        <ellipse cx={width / 2} cy={h / 2} rx={rx} ry={ry} fill="none" stroke={color} strokeWidth={1} />
-        <line x1={width / 2 - rx + 3} y1={h / 2} x2={width / 2 + rx - 3} y2={h / 2} stroke={color} strokeWidth={1} />
+        {/* thick-thin double rule — classic fine-print detail */}
+        <line x1={0} y1={mid} x2={width / 2 - rx - 6} y2={mid} stroke={color} strokeWidth={1} opacity={0.65} />
+        <line x1={width / 2 + rx + 6} y1={mid} x2={width} y2={mid} stroke={color} strokeWidth={1} opacity={0.65} />
+        <line x1={width * 0.1} y1={mid + 3.5} x2={width / 2 - rx - 14} y2={mid + 3.5} stroke={color} strokeWidth={0.5} opacity={0.3} />
+        <line x1={width / 2 + rx + 14} y1={mid + 3.5} x2={width * 0.9} y2={mid + 3.5} stroke={color} strokeWidth={0.5} opacity={0.3} />
+        {/* the θ ellipse, champagne highlight on the upper arc */}
+        <ellipse cx={width / 2} cy={mid} rx={rx} ry={ry} fill="none" stroke={color} strokeWidth={1} />
+        <path d={`M ${width / 2 - rx * 0.72} ${mid - ry * 0.62} A ${rx} ${ry} 0 0 1 ${width / 2 + rx * 0.72} ${mid - ry * 0.62}`}
+          fill="none" stroke="#F5D98A" strokeWidth={1} strokeLinecap="round" opacity={0.9} />
+        <line x1={width / 2 - rx + 3} y1={mid} x2={width / 2 + rx - 3} y2={mid} stroke={color} strokeWidth={1} />
       </svg>
     </div>
   );

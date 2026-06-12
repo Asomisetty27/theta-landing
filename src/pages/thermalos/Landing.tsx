@@ -75,9 +75,9 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   // Every section opens with the θ-construction mark — the brand glyph at
   // its smallest scale (see ThetaField.tsx for the identity rules).
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: FM, fontSize: 10, fontWeight: 500, letterSpacing: '.18em', textTransform: 'uppercase', color: T.faint }}>
-      <ThetaGlyph size={13} opacity={0.75} />
-      <span style={{ display: 'block', width: 14, height: 1, background: T.borderHi, flexShrink: 0 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: FM, fontSize: 10, fontWeight: 500, letterSpacing: '.26em', textTransform: 'uppercase', color: '#A08A4E' }}>
+      <ThetaGlyph size={13} opacity={0.85} />
+      <span style={{ display: 'block', width: 14, height: 1, background: 'linear-gradient(90deg, #8A6F2E, transparent)', flexShrink: 0 }} />
       {children}
     </div>
   );
@@ -105,7 +105,7 @@ function Panel({ children, label, corner, style, glass }: {
   glass?: boolean;
 }) {
   return (
-    <div className={glass ? 'tos-glass' : ''} style={{ border: `1px solid ${glass ? 'rgba(255,255,255,.06)' : T.border}`, borderRadius: 6, background: glass ? undefined : T.s1, overflow: 'hidden', transition: 'border-color .2s', ...style }}>
+    <div className={glass ? 'tos-glass' : ''} style={{ border: `1px solid ${glass ? 'rgba(255,255,255,.06)' : T.border}`, borderRadius: 6, background: glass ? undefined : T.s1, overflow: 'hidden', transition: 'border-color .2s', boxShadow: glass ? undefined : 'inset 0 1px 0 rgba(245,217,138,.06), 0 14px 40px -18px rgba(0,0,0,.6)', ...style }}>
       {(label || corner) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', borderBottom: `1px solid ${glass ? 'rgba(255,255,255,.05)' : T.border}`, background: glass ? 'rgba(0,0,0,.18)' : T.s0 }}>
           {label && <span style={{ fontFamily: FM, fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase', color: T.faint }}>{label}</span>}
@@ -127,10 +127,10 @@ function SectionHead({ eyebrow, title, body, center }: {
   return (
     <div style={{ maxWidth: 540, ...(center ? { margin: '0 auto', textAlign: 'center' } : {}) }}>
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 style={{ fontFamily: "'Clash Display', 'Satoshi', Inter, system-ui, sans-serif", fontSize: 'clamp(28px,3.4vw,44px)', fontWeight: 600, letterSpacing: '-.03em', lineHeight: 1.05, color: T.text, margin: '14px 0 12px' }}>
+      <h2 style={{ fontFamily: "'Clash Display', 'Satoshi', Inter, system-ui, sans-serif", fontSize: 'clamp(30px,3.6vw,50px)', fontWeight: 600, letterSpacing: '-.03em', lineHeight: 1.04, color: T.text, margin: '18px 0 14px' }}>
         {title}
       </h2>
-      {body && <p style={{ fontFamily: FD, fontSize: 14.5, lineHeight: 1.65, color: T.muted }}>{body}</p>}
+      {body && <p style={{ fontFamily: FD, fontSize: 15, lineHeight: 1.75, color: T.muted }}>{body}</p>}
     </div>
   );
 }
@@ -291,9 +291,9 @@ function Nav() {
             <GithubIcon s={12} /> github
           </a>
           <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FD, fontSize: 13, fontWeight: 500, padding: '6px 14px', borderRadius: 4, background: T.healthy, color: '#1A1408', textDecoration: 'none', transition: 'opacity .15s' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '0.88')}
-            onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '1')}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FD, fontSize: 13, fontWeight: 500, padding: '6px 14px', borderRadius: 4, background: 'linear-gradient(180deg, #F2D788 0%, #D4AF37 55%, #A8852B 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.25), 0 2px 12px rgba(212,175,55,.2)', color: '#1A1408', textDecoration: 'none', transition: 'filter .15s' }}
+            onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.filter = 'brightness(1.08)')}
+            onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.filter = 'none')}>
             install <ArrowRight s={11} />
           </a>
         </div>
@@ -482,7 +482,7 @@ function Hero() {
                 <div style={{ fontFamily: FM, fontSize: 7.5, letterSpacing: '0.22em', color: T.amber, textTransform: 'uppercase', marginBottom: 12, opacity: 0.7 }}>
                   ⬚ {String(i + 1).padStart(2, '0')} / {String(HERO_STATS.length).padStart(2, '0')}
                 </div>
-                <div style={{ fontFamily: FM, fontSize: 28, fontWeight: 600, letterSpacing: '-.02em', color: T.text, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                <div style={{ fontFamily: FM, fontSize: 28, fontWeight: 600, letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums', background: 'linear-gradient(135deg, #F0EADC 0%, #D4AF37 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.v}</div>
                 <div style={{ fontFamily: FM, fontSize: 9, color: T.healthy, marginTop: 6, letterSpacing: '.08em', textTransform: 'uppercase' }}>{s.l}</div>
                 <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, marginTop: 2, letterSpacing: '.02em' }}>{s.s}</div>
               </div>
@@ -515,7 +515,7 @@ function Signal() {
     <section ref={ref} id="signal" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
       <ThetaField rings={5} baseR={64} cx="14%" cy="72%" opacity={0.4} />
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 72, alignItems: 'start' }} className="tos-two-col">
           <div>
             <div data-r style={{ opacity: 0, marginBottom: 16 }}>
@@ -797,7 +797,7 @@ function Evidence() {
       <ThetaDivider />
       <ThetaField rings={6} baseR={58} cx="86%" cy="16%" opacity={0.35} />
       <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3, zIndex: 1 }} />
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-e style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Stage 1 Evidence · controlled-variable thermal memory" title={<>2°C ambient delta<br /><span className="tos-grad-text">3.5× recovery</span> time difference.<br />n=8 trials, single-variable design.</>}
             body="E004 v2 (complete 2026-06-11, 8 trials at three thermal-start conditions): 1800s pre-trial wait + uniform start temperature within each cohort. Cold-start cohort (37°C, n=2): 4.2s power recovery. Warm-start cohort (39°C, n=5): 14.7s ± 1.1s — 3.5× within-session. Coldest trial (35°C, n=1, separate session): 8.2s. Within-condition reproducibility T<55°C CV 1.8%, T<42°C CV 1.6% — publication-grade. Same hardware, same workload. The thermal memory effect F1 hypothesized is demonstrated with a designed experiment." />
@@ -882,7 +882,7 @@ function ProductionProof() {
         WebkitMaskImage: 'radial-gradient(ellipse 95% 85% at 50% 45%, black 50%, transparent 100%)',
         pointerEvents: 'none',
       }} />
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-p style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Production validation · 72× H100 SXM5 · June 2026"
             title={<>Blind-tested on a production<br />H100 cluster. <span className="tos-grad-text">It worked.</span></>}
@@ -990,7 +990,7 @@ function FeaturesGrid() {
     <section ref={ref} id="features" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
       <ThetaField rings={5} baseR={66} cx="82%" cy="80%" opacity={0.32} glow={false} />
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-f style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Capabilities" title={<>Built for fleets<br />NVIDIA won&apos;t serve.</>}
             body="Mission Control ships only on Blackwell DGX/GB200 systems. The long tail of mixed-vendor, older-gen neocloud fleets is structurally out of reach. That's the lane." />
@@ -1183,7 +1183,7 @@ function CompetitorTable() {
     <section ref={ref} id="gap" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
       <ThetaField rings={4} baseR={60} cx="10%" cy="20%" opacity={0.3} glow={false} />
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-c style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="The Gap" title={<>NVIDIA ships three<br />telemetry products.<br />None compute R<sub>θ</sub>.</>}
             body="DCGM, Mission Control, and NVIDIA's newest fleet agent all expose T and P as separate fields. The ratio — the signal — is absent from every incumbent." />
@@ -1271,7 +1271,7 @@ function Pricing() {
       {/* pricing card sits at the center of the contour field — the product
           at the heat source */}
       <ThetaField rings={7} baseR={72} cx="50%" cy="52%" opacity={0.42} />
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-p style={{ opacity: 0, marginBottom: 48, textAlign: 'center' }}>
           <SectionHead center eyebrow="Pricing" title="Free forever for one node."
             body="Fleet dashboard and alerting for operators managing multiple GPUs. No signup until you scale." />
@@ -1326,9 +1326,9 @@ function Pricing() {
                 ))}
               </div>
               <a href="mailto:asomisetty27@gmail.com?subject=Theta fleet tier"
-                style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 11, borderRadius: 4, background: T.healthy, color: '#1A1408', fontFamily: FD, fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'opacity .15s' }}
-                onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '0.87')}
-                onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.opacity = '1')}>
+                style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12, borderRadius: 4, background: 'linear-gradient(180deg, #F2D788 0%, #D4AF37 55%, #A8852B 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.25), 0 4px 18px rgba(212,175,55,.22)', color: '#1A1408', fontFamily: FD, fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'filter .15s' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.filter = 'brightness(1.08)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.filter = 'none')}>
                 Request fleet tier <ArrowRight />
               </a>
               {/* Academia free-support note */}
@@ -1398,7 +1398,7 @@ function Footer() {
             </div>
           ))}
         </div>
-        <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 44, paddingTop: 18, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ borderTop: `1px solid #8A6F2E55`, boxShadow: '0 -3px 0 -2px rgba(138,111,46,.18)', marginTop: 44, paddingTop: 18, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>© 2026 Theta · MIT License</span>
           <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>R_θ = ΔT / P — the one ratio nobody else ships.</span>
         </div>
@@ -1749,7 +1749,7 @@ function TerminalDemo() {
   return (
     <section style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.35 }} />
-      <div ref={wrapRef} style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+      <div ref={wrapRef} style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 72, alignItems: 'center' }} className="tos-two-col">
           <div>
             <SectionHead eyebrow="See it run" title={<>90 seconds from<br />pip install to first<br />R_θ reading.</>}
@@ -1865,7 +1865,7 @@ function sleep(ms: number): Promise<void> {
 /* ─── Root ────────────────────────────────────────────────────────────────── */
 export default function ThermalOSLanding() {
   return (
-    <main className="tos-root">
+    <main className="tos-root tos-grain">
       <style>{STYLES}</style>
       <Nav />
       <Hero />
