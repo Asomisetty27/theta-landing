@@ -892,8 +892,18 @@ function ProductionProof() {
   }, [inView]);
 
   return (
-    <section ref={ref} id="production" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+    <section ref={ref} id="production" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden' }}>
       <GradientOrbs variant="mixed" />
+      {/* isotherm flow field — behind the glass panels, edge-faded */}
+      <div aria-hidden style={{
+        position: 'absolute', inset: 0, zIndex: 1,
+        backgroundImage: "url('/textures/thermal-flow.png')",
+        backgroundSize: 'cover', backgroundPosition: 'center',
+        opacity: .6,
+        maskImage: 'radial-gradient(ellipse 95% 85% at 50% 45%, black 50%, transparent 100%)',
+        WebkitMaskImage: 'radial-gradient(ellipse 95% 85% at 50% 45%, black 50%, transparent 100%)',
+        pointerEvents: 'none',
+      }} />
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
         <div data-p style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Production validation · 72× H100 SXM5 · June 2026"
