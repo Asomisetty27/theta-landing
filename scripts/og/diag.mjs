@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const p = await browser.newPage();
+const errs = [];
+p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+p.on('pageerror', e => errs.push('pageerror: ' + String(e).slice(0, 500)));
+await p.goto('http://localhost:5173/', { waitUntil: 'load' });
+await p.waitForTimeout(3000);
+const html = await p.evaluate(() => document.body.innerHTML.length);
+const ids = await p.evaluate(() => ['signal','evidence','gap','pricing'].map(i => !!document.getElementById(i)));
+console.log('body html len:', html, 'ids:', ids);
+console.log(errs.slice(0, 5).join('\n') || 'no errors');
+await browser.close();

@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const m = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 2 });
+await m.goto('http://localhost:5173/', { waitUntil: 'load' });
+await m.waitForTimeout(2500);
+const overflow = await m.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+await m.evaluate(() => document.getElementById('pricing').scrollIntoView());
+await m.waitForTimeout(2500);
+await m.screenshot({ path: '/tmp/brand-m-pricing.png' });
+console.log('mobile overflow:', overflow);
+await browser.close();

@@ -43,11 +43,13 @@ export function ThetaMark({ size = 32, color = 'currentColor' }: { size?: number
   );
 }
 
-const BRAND_GREEN = '#27A05A';
+// Champagne gold — the Theta brand accent (see thermalos/design-system.ts).
+// Was a legacy green; every brand surface is champagne-on-obsidian now.
+const BRAND_GOLD = '#D4AF37';
 
 export default function ThetaLogo({
   size = 32,
-  color = BRAND_GREEN,
+  color = BRAND_GOLD,
   variant = 'full',
   style,
   className,

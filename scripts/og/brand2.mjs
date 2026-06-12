@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await p.goto('http://localhost:5173/', { waitUntil: 'load' });
+await p.waitForTimeout(2000);
+await p.evaluate(() => document.getElementById('pricing').scrollIntoView());
+await p.waitForTimeout(4000);
+await p.screenshot({ path: '/tmp/brand-pricing2.png' });
+await browser.close();
+console.log('done');

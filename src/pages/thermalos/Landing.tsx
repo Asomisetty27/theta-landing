@@ -23,6 +23,7 @@ import GPUHeroVideo from './components/GPUHeroVideo';
 const DataCenterShowcase = React.lazy(() => import('./components/DataCenterShowcase'));
 const OperatorViewShowcase = React.lazy(() => import('./components/OperatorViewShowcase'));
 import ThetaLogo from '../../components/ThetaLogo';
+import { ThetaField, ThetaDivider, ThetaGlyph } from './components/ThetaField';
 import { COLORS, TYPOGRAPHY, COMPONENTS, EASING } from './design-system';
 
 /* ─── Design tokens (Industrial Instrument aesthetic) ───────────────────── */
@@ -57,38 +58,6 @@ function rm() {
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-/* ─── Gradient orb background ────────────────────────────────────────────── */
-function GradientOrbs({ variant = 'green' }: { variant?: 'green' | 'blue' | 'mixed' }) {
-  const orbs = variant === 'green' ? [
-    { cls: 'tos-orb-a', color: 'rgba(232,228,216,.06)', w: 640, h: 520, top: '-18%', left: '60%', blur: 120 },
-    { cls: 'tos-orb-b', color: 'rgba(212,175,55,.04)',  w: 380, h: 380, top: '55%',  left: '5%',  blur: 90  },
-  ] : variant === 'blue' ? [
-    { cls: 'tos-orb-a', color: 'rgba(232,228,216,.07)', w: 580, h: 460, top: '-15%', left: '55%', blur: 110 },
-    { cls: 'tos-orb-b', color: 'rgba(232,228,216,.04)', w: 340, h: 340, top: '60%',  left: '2%',  blur: 90  },
-  ] : [
-    { cls: 'tos-orb-a', color: 'rgba(232,228,216,.06)', w: 580, h: 480, top: '-20%', left: '62%', blur: 130 },
-    { cls: 'tos-orb-b', color: 'rgba(212,175,55,.05)',  w: 400, h: 400, top: '50%',  left: '3%',  blur: 100 },
-    { cls: 'tos-orb-c', color: 'rgba(232,228,216,.03)', w: 280, h: 280, top: '80%',  left: '70%', blur: 80  },
-  ];
-
-  return (
-    <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
-      {orbs.map((o, i) => (
-        <div key={i} className={o.cls} style={{
-          position: 'absolute',
-          top: o.top, left: o.left,
-          width: o.w, height: o.h,
-          borderRadius: '50%',
-          background: `radial-gradient(ellipse at center, ${o.color} 0%, transparent 70%)`,
-          filter: `blur(${o.blur}px)`,
-          mixBlendMode: 'screen',
-          willChange: 'transform',
-        }} />
-      ))}
-    </div>
-  );
-}
-
 /* ─── Primitive icons ─────────────────────────────────────────────────────── */
 const ArrowRight = ({ s = 13 }: { s?: number }) => (
   <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -103,9 +72,12 @@ const GithubIcon = ({ s = 13 }: { s?: number }) => (
 
 /* ─── Shared primitives ───────────────────────────────────────────────────── */
 function Eyebrow({ children }: { children: React.ReactNode }) {
+  // Every section opens with the θ-construction mark — the brand glyph at
+  // its smallest scale (see ThetaField.tsx for the identity rules).
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: FM, fontSize: 10, fontWeight: 500, letterSpacing: '.18em', textTransform: 'uppercase', color: T.faint }}>
-      <span style={{ display: 'block', width: 20, height: 1, background: T.borderHi, flexShrink: 0 }} />
+      <ThetaGlyph size={13} opacity={0.75} />
+      <span style={{ display: 'block', width: 14, height: 1, background: T.borderHi, flexShrink: 0 }} />
       {children}
     </div>
   );
@@ -541,7 +513,8 @@ function Signal() {
 
   return (
     <section ref={ref} id="signal" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
-      <GradientOrbs variant="blue" />
+      <ThetaDivider />
+      <ThetaField rings={5} baseR={64} cx="14%" cy="72%" opacity={0.4} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 72, alignItems: 'start' }} className="tos-two-col">
           <div>
@@ -821,7 +794,8 @@ function Evidence() {
 
   return (
     <section ref={ref} id="evidence" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
-      <GradientOrbs variant="green" />
+      <ThetaDivider />
+      <ThetaField rings={6} baseR={58} cx="86%" cy="16%" opacity={0.35} />
       <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3, zIndex: 1 }} />
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
         <div data-e style={{ opacity: 0, marginBottom: 48 }}>
@@ -894,8 +868,10 @@ function ProductionProof() {
   }, [inView]);
 
   return (
-    <section ref={ref} id="production" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden' }}>
-      <GradientOrbs variant="mixed" />
+    // overflow stays visible so the ThetaDivider can straddle the top border;
+    // the flow texture below has its own radial mask so nothing bleeds
+    <section ref={ref} id="production" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <ThetaDivider />
       {/* isotherm flow field — behind the glass panels, edge-faded */}
       <div aria-hidden style={{
         position: 'absolute', inset: 0, zIndex: 1,
@@ -1012,7 +988,8 @@ function FeaturesGrid() {
 
   return (
     <section ref={ref} id="features" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
-      <GradientOrbs variant="blue" />
+      <ThetaDivider />
+      <ThetaField rings={5} baseR={66} cx="82%" cy="80%" opacity={0.32} glow={false} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
         <div data-f style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Capabilities" title={<>Built for fleets<br />NVIDIA won&apos;t serve.</>}
@@ -1203,8 +1180,10 @@ function CompetitorTable() {
   }, [inView]);
   const us = CMP_COLS.length - 1;
   return (
-    <section ref={ref} id="gap" style={{ borderTop: `1px solid ${T.border}` }}>
-      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+    <section ref={ref} id="gap" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <ThetaDivider />
+      <ThetaField rings={4} baseR={60} cx="10%" cy="20%" opacity={0.3} glow={false} />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
         <div data-c style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="The Gap" title={<>NVIDIA ships three<br />telemetry products.<br />None compute R<sub>θ</sub>.</>}
             body="DCGM, Mission Control, and NVIDIA's newest fleet agent all expose T and P as separate fields. The ratio — the signal — is absent from every incumbent." />
@@ -1287,8 +1266,12 @@ function Pricing() {
   }, [inView]);
 
   return (
-    <section ref={ref} id="pricing" style={{ borderTop: `1px solid ${T.border}` }}>
-      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
+    <section ref={ref} id="pricing" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <ThetaDivider />
+      {/* pricing card sits at the center of the contour field — the product
+          at the heat source */}
+      <ThetaField rings={7} baseR={72} cx="50%" cy="52%" opacity={0.42} />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '88px 32px' }}>
         <div data-p style={{ opacity: 0, marginBottom: 48, textAlign: 'center' }}>
           <SectionHead center eyebrow="Pricing" title="Free forever for one node."
             body="Fleet dashboard and alerting for operators managing multiple GPUs. No signup until you scale." />
@@ -1375,8 +1358,9 @@ function Footer() {
     { t: 'company',  ls: [{ l: 'about', h: '#' }, { l: 'contact', h: 'mailto:asomisetty27@gmail.com' }, { l: 'privacy', h: '#' }, { l: 'MIT license', h: '#' }] },
   ];
   return (
-    <footer style={{ borderTop: `1px solid ${T.border}`, background: T.s0 }}>
-      <div style={{ maxWidth: 1240, margin: '0 auto', padding: '56px 32px' }}>
+    <footer style={{ borderTop: `1px solid ${T.border}`, background: T.s0, position: 'relative', overflow: 'hidden' }}>
+      <ThetaField rings={6} baseR={90} cx="92%" cy="110%" opacity={0.4} glow={false} />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '56px 32px' }}>
         <div className="tos-footer-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: 36 }}>
           <div>
             <div style={{ marginBottom: 10 }}>
@@ -1440,25 +1424,6 @@ const STYLES = `
   background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
   background-position: -1px -1px;
 }
-
-/* ── Gradient orb animations (Framer mesh-gradient depth) ─────────────── */
-@keyframes tos-orb-a {
-  0%,100% { transform: translate(0,0) scale(1); }
-  33%  { transform: translate(5%,-7%) scale(1.07); }
-  66%  { transform: translate(-3%,4%) scale(.95); }
-}
-@keyframes tos-orb-b {
-  0%,100% { transform: translate(0,0) scale(1); }
-  40%  { transform: translate(-6%,5%) scale(1.05); }
-  75%  { transform: translate(4%,-3%) scale(.97); }
-}
-@keyframes tos-orb-c {
-  0%,100% { transform: translate(0,0) scale(1); }
-  50%  { transform: translate(3%,6%) scale(1.04); }
-}
-.tos-orb-a { animation: tos-orb-a 20s ease-in-out infinite; }
-.tos-orb-b { animation: tos-orb-b 26s ease-in-out infinite; }
-.tos-orb-c { animation: tos-orb-c 32s ease-in-out infinite; }
 
 /* ── Film grain overlay ─────────────────────────────────────────────────── */
 .tos-grain {

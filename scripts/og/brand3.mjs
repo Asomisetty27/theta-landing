@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await p.goto('http://localhost:5173/', { waitUntil: 'load' });
+await p.waitForTimeout(2000);
+const y = await p.evaluate(() => document.getElementById('pricing').getBoundingClientRect().top + window.scrollY);
+await p.evaluate(yy => window.scrollTo(0, yy - 420), y);
+await p.waitForTimeout(2500);
+await p.screenshot({ path: '/tmp/brand-divider.png', clip: { x: 400, y: 250, width: 640, height: 340 } });
+await browser.close();
+console.log('done');

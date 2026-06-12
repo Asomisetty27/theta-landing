@@ -1,6 +1,31 @@
 // Industrial Instrument Design System
 // Lab-grade aesthetic: amber phosphor + brushed steel + oscilloscope rhythm
 // Credibility signal: "built by people who understand hardware"
+//
+// ── BRAND IDENTITY ────────────────────────────────────────────────────────
+// Theta must be recognizable from geometry, palette, and pattern alone.
+//
+// GEOMETRY — the θ construction: an ellipse bisected by a horizontal
+//   crossbar. It is simultaneously (1) the glyph, (2) a thermal contour
+//   map — concentric isotherm rings around a heat source, i.e. the product,
+//   and (3) the fraction bar in R_θ = ΔT / P. One construction, three
+//   readings. Rendered at three scales by components/ThetaField.tsx:
+//   ThetaField (section background), ThetaDivider (section-top hairline
+//   through a small ellipse), ThetaGlyph (eyebrow/inline mark).
+//
+// PALETTE — champagne gold (#D4AF37) hairlines on obsidian (#050407).
+//   The brand pattern is ALWAYS monochrome champagne at low opacity
+//   (≤0.5 field strength). Color encodes information only — thermal
+//   semantics (healthy/caution/rising/critical) never decorate.
+//
+// PATTERN RULES —
+//   · isotherm rings fade outward (opacity ×0.78 per ring); outer rings
+//     dashed like dial calibration; ticks where rings cross the bar
+//   · one field per section, positioned off-center, never behind body text
+//   · no gradient orbs, no neon glows, no generic mesh backgrounds —
+//     if a background could appear on any SaaS site, it's off-brand
+//   · supporting motif: corner brackets / calibration ticks (MOTIFS.corner)
+// ──────────────────────────────────────────────────────────────────────────
 
 export const COLORS = {
   // Champagne gold — primary brand accent (used sparingly, where it matters)
