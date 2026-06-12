@@ -15,7 +15,8 @@ await new Promise(r => server.listen(4173, r));
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
-await page.goto('http://localhost:4173/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4173/', { waitUntil: 'load' });
+await page.waitForSelector('#production', { timeout: 30000 });
 await page.evaluate(() => document.getElementById('production').scrollIntoView());
 await page.waitForTimeout(1800); // let entrance animations finish
 await page.locator('#production').screenshot({ path: '/tmp/production-section.png' });
