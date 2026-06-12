@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useRef, useMemo, useEffect, useState, Suspense, createContext, useContext } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { RoundedBox, Environment, Html, ContactShadows, MeshReflectorMaterial, Lightformer } from '@react-three/drei';
+import { RoundedBox, Environment, Html, ContactShadows, MeshReflectorMaterial, Lightformer, Instances, Instance } from '@react-three/drei';
 import {
   EffectComposer,
   Bloom,
@@ -467,14 +467,17 @@ function SubstrateAndComponentsLayer({ spec, textures, labelOpacityRef }: { spec
   const profile = stackProfileFor(spec);
   const maps = useGpuMaps();
 
+  // Deterministic (seq, not Math.random — capture frames must reproduce) and
+  // ~4× denser than before: server boards read as POPULATED under a close
+  // camera, not sparsely dotted.
   const smds = useMemo(() => {
     const out: { pos: [number, number, number]; size: [number, number, number]; gold: boolean }[] = [];
-    const n = profile === 'card' ? 26 : 16;
+    const n = profile === 'card' ? 96 : 72;
     for (let i = 0; i < n; i++) {
-      const x = (Math.random() - 0.5) * (spec.width - 1.0);
-      const z = (Math.random() - 0.5) * (spec.depth - 1.4);
+      const x = (seq(i, 3) - 0.5) * (spec.width - 1.0);
+      const z = (seq(i, 17) - 0.5) * (spec.depth - 1.4);
       if (Math.abs(x) < 1.4 && Math.abs(z) < 1.4) continue;
-      out.push({ pos: [x, 0.13, z], size: [0.06 + Math.random() * 0.09, 0.05, 0.04 + Math.random() * 0.05], gold: Math.random() > 0.78 });
+      out.push({ pos: [x, 0.13, z], size: [0.05 + seq(i, 23) * 0.08, 0.045, 0.035 + seq(i, 31) * 0.05], gold: seq(i, 47) > 0.8 });
     }
     return out;
   }, [spec, profile]);
@@ -483,6 +486,19 @@ function SubstrateAndComponentsLayer({ spec, textures, labelOpacityRef }: { spec
     const out: [number, number, number][] = [];
     const n = profile === 'card' ? 6 : 4;
     for (let i = 0; i < n; i++) out.push([-spec.width / 2 + 0.9 + (i % 3) * 0.85, 0.22, -spec.depth / 2 + 0.85 + Math.floor(i / 3) * 0.85]);
+    return out;
+  }, [spec, profile]);
+
+  // VRM bank — the row of power stages + flat shielded inductors along one
+  // long edge that every server GPU board has. Reads instantly as "power
+  // delivery" in the explode dwell.
+  const vrmStages = useMemo<[number, number, number][]>(() => {
+    const out: [number, number, number][] = [];
+    const n = profile === 'card' ? 10 : 8;
+    const span = spec.width - 2.2;
+    for (let i = 0; i < n; i++) {
+      out.push([-span / 2 + (i * span) / (n - 1), 0.16, spec.depth / 2 - 0.62]);
+    }
     return out;
   }, [spec, profile]);
 
@@ -514,11 +530,26 @@ function SubstrateAndComponentsLayer({ spec, textures, labelOpacityRef }: { spec
           <meshStandardMaterial color="#2a2a2e" roughness={0.65} metalness={0.3} roughnessMap={textures.rough} />
         </RoundedBox>
       ))}
-      {smds.map((s, i) => (
-        <mesh key={`smd-${i}`} position={s.pos}>
-          <boxGeometry args={s.size} />
-          <meshStandardMaterial color={s.gold ? '#D4AF37' : '#16161a'} roughness={s.gold ? 0.3 : 0.6} metalness={s.gold ? 1.0 : 0.3} roughnessMap={s.gold ? undefined : textures.rough} />
-        </mesh>
+      {/* SMD field — instanced, one draw call despite the density */}
+      <Instances limit={128} range={128}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial roughness={0.55} metalness={0.4} roughnessMap={textures.rough} />
+        {smds.map((s, i) => (
+          <Instance key={`smd-${i}`} position={s.pos} scale={s.size} color={s.gold ? '#D4AF37' : '#16161a'} />
+        ))}
+      </Instances>
+      {/* VRM power stages — paired dark QFN + flat shielded inductor */}
+      {vrmStages.map((p, i) => (
+        <group key={`vrm-${i}`} position={p}>
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[0.26, 0.07, 0.26]} />
+            <meshStandardMaterial color="#1b1c20" roughness={0.45} metalness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.005, 0.34]}>
+            <boxGeometry args={[0.3, 0.09, 0.3]} />
+            <meshStandardMaterial color="#2e3035" roughness={0.6} metalness={0.55} roughnessMap={textures.rough} />
+          </mesh>
+        </group>
       ))}
       {/* AMD INSTINCT silkscreen decal — printed on the PCB short edge of the
           MI300X OAM module. Faces up; aligned along the long axis of the short edge. */}
@@ -804,10 +835,45 @@ function GPUCard({
   );
 }
 
+// Deterministic pseudo-random — golden-ratio low-discrepancy sequence.
+// Capture frames must be identical run-to-run; Math.random is banned here.
+function seq(i: number, seed = 0): number {
+  const x = (i + seed + 1) * 0.6180339887498949;
+  return x - Math.floor(x);
+}
+
+// Procedural die-shot texture — the rectangular SM/cache-block mosaic you
+// see on a real lapped die under studio light. Subtle tone steps only.
+function makeDieShotTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#14151b';
+  ctx.fillRect(0, 0, 256, 256);
+  // Core block mosaic: column pairs of compute tiles with a central spine
+  let k = 0;
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 8; col++) {
+      const v = 18 + Math.floor(seq(k++) * 14);
+      ctx.fillStyle = `rgb(${v},${v + 2},${v + 7})`;
+      ctx.fillRect(8 + col * 30, 8 + row * 20, 27, 17);
+    }
+  }
+  // Central interconnect spine + cache bands — slightly brighter
+  ctx.fillStyle = '#262a35';
+  ctx.fillRect(120, 8, 16, 240);
+  ctx.fillRect(8, 118, 240, 14);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
 // Small wrapper so DieBlock can take a plain opacity ref (avoids prop-shape mismatch above)
 function DieBlockWrapper({ spec, thermalRef, opacityRef }: { spec: GPUSpec; thermalRef: React.MutableRefObject<number>; opacityRef: React.MutableRefObject<number> }) {
   const matRefs = useRef<(THREE.MeshStandardMaterial | null)[]>([]);
   const maps = useGpuMaps();
+  const dieShot = useMemo(() => makeDieShotTexture(), []);
   useFrame(() => {
     const t = thermalRef.current;
     const c = thermalHex(t);
@@ -914,6 +980,15 @@ function DieBlockWrapper({ spec, thermalRef, opacityRef }: { spec: GPUSpec; ther
           <RoundedBox args={[d.w, 0.12, d.d]} radius={0.02} smoothness={3} position={d.pos}>
             <meshStandardMaterial ref={(m) => { matRefs.current[i] = m; }} color="#16161C" roughness={0.15} metalness={0.3} />
           </RoundedBox>
+          {/* Die-shot mosaic on the exposed top — the compute-tile grid that
+              makes a bare die read as silicon instead of a black slab.
+              Only visible when no IHS covers the die. */}
+          {!showPerDieIHS && (
+            <mesh position={[d.pos[0], d.pos[1] + 0.0605, d.pos[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+              <planeGeometry args={[d.w * 0.94, d.d * 0.94]} />
+              <meshStandardMaterial map={dieShot} roughness={0.22} metalness={0.45} envMapIntensity={1.1} />
+            </mesh>
+          )}
           {showPerDieIHS && (
             <RoundedBox args={[d.w * 1.04, 0.05, d.d * 1.04]} radius={0.015} smoothness={3} position={[d.pos[0], d.pos[1] + 0.085, d.pos[2]]}>
               <meshStandardMaterial color="#CFCAC0" roughness={0.18} metalness={0.95} envMapIntensity={1.25} map={maps?.nickelBrushed ?? undefined} />
@@ -921,6 +996,29 @@ function DieBlockWrapper({ spec, thermalRef, opacityRef }: { spec: GPUSpec; ther
           )}
         </group>
       ))}
+      {/* MLCC decoupling-capacitor field — dense bands flanking the die
+          cluster, the signature "package shot" detail. Instanced: one draw
+          call for the whole field. Deterministic placement (seq), never
+          random — capture frames must be reproducible. */}
+      <Instances limit={64} range={64}>
+        <boxGeometry args={[0.055, 0.03, 0.085]} />
+        <meshStandardMaterial roughness={0.4} metalness={0.6} />
+        {Array.from({ length: 56 }).map((_, i) => {
+          const band = i % 2 === 0 ? 1 : -1; // two bands, ±z of the die cluster
+          const bandZ = (spec.dieLayout === 'chiplet-grid' ? 1.45 : 1.55) * band;
+          const x = -spec.width * 0.32 + seq(i, 7) * spec.width * 0.64;
+          const z = bandZ + (seq(i, 13) - 0.5) * 0.34;
+          const gold = seq(i, 29) > 0.6;
+          return (
+            <Instance
+              key={i}
+              position={[x, 0.015, z]}
+              rotation={[0, seq(i, 41) > 0.5 ? Math.PI / 2 : 0, 0]}
+              color={gold ? '#A8823F' : '#23252B'}
+            />
+          );
+        })}
+      </Instances>
       {/* H100 SXM5 — NVIDIA wordmark etched into the IHS top face */}
       {spec.id === 'h100' && maps?.nvidiaDecal && (
         <mesh position={[0, 0.07 + 0.085 + 0.026, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -959,10 +1057,20 @@ function DieBlockWrapper({ spec, thermalRef, opacityRef }: { spec: GPUSpec; ther
             <boxGeometry args={[m.w + 0.04, 0.04, m.d + 0.04]} />
             <meshStandardMaterial color="#1A1614" roughness={0.6} metalness={0.05} />
           </mesh>
-          {/* The stack itself — taller than wide, matte brown-black */}
-          <RoundedBox args={[m.w, m.h, m.d]} radius={0.015} smoothness={3}>
-            <meshStandardMaterial color="#26201C" roughness={0.55} metalness={0.1} />
-          </RoundedBox>
+          {/* Laminated DRAM stack — 4 visible die slabs with hairline gaps,
+              the detail that makes HBM read as STACKED memory at dwell
+              range instead of a brown box. Alternating tone per slab. */}
+          {Array.from({ length: 4 }).map((_, s) => (
+            <RoundedBox
+              key={s}
+              args={[m.w, m.h / 4 - 0.008, m.d]}
+              radius={0.012}
+              smoothness={2}
+              position={[0, -m.h / 2 + (s + 0.5) * (m.h / 4), 0]}
+            >
+              <meshStandardMaterial color={s % 2 === 0 ? '#26201C' : '#1D1916'} roughness={0.5} metalness={0.14} />
+            </RoundedBox>
+          ))}
           {/* HBM3 top cap — gold metallic TIM/logic-die lid. Hidden under
               the unified B200 IHS where it'd visually intersect the lid. */}
           {showHbmCaps && (
@@ -1015,16 +1123,19 @@ function CardNamePlate({ spec, index }: { spec: GPUSpec; index: number }) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Cinematic palette — "Liquid Gold": Champagne Gold + Obsidian Silver.
-// Luxury watch / premium automotive reveal aesthetic. Warm, not neon.
+// Cinematic palette — "Champagne Showroom": car-commercial studio with the
+// brand's gold kept as a concentrated accent. Crisp NEUTRAL key light (that
+// is what makes detail read sharp), cool clean darks (no amber haze), and
+// champagne gold only where it's jewelry: the horizon band, one side card,
+// the strip light.
 // ──────────────────────────────────────────────────────────────────────────
 const CINE = {
-  void:        '#2A2620', // warm slate (atmosphere)
-  voidDeep:    '#0A0A0B', // deep obsidian (backdrop blackpoint)
-  hot:         '#FFE8BC', // champagne gold (accent emissive)
-  hotSoft:     '#D4AF37', // 18k champagne gold (desaturated, not brassy)
-  rim:         '#E2E8F0', // liquid platinum (white rim / softbox)
-  floor:       '#06060A', // black nickel mirror floor
+  void:        '#15171C', // cool graphite (atmosphere — clean, not warm mud)
+  voidDeep:    '#08090B', // showroom black (backdrop blackpoint)
+  hot:         '#FFE8BC', // champagne gold (strip-light emissive)
+  hotSoft:     '#D4AF37', // 18k champagne gold (accents)
+  rim:         '#EEF3FA', // crisp white rim / softbox
+  floor:       '#07080A', // black mirror floor
 };
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -1034,18 +1145,19 @@ const CINE = {
 // ──────────────────────────────────────────────────────────────────────────
 
 function Backdrop() {
-  // Smooth warm-slate → soft-champagne gradient. Linear falloff, zero noise.
+  // Showroom infinite wall: black → cool graphite glow band → black.
+  // The glowing horizon is what sells "studio", not a colored sky.
   const gradTex = useMemo(() => {
     const c = document.createElement('canvas');
     c.width = 8; c.height = 1024;
     const ctx = c.getContext('2d')!;
     const g = ctx.createLinearGradient(0, 0, 0, 1024);
     g.addColorStop(0.00, CINE.voidDeep);
-    g.addColorStop(0.32, '#1a1612');
-    g.addColorStop(0.50, '#3a2f22');
-    g.addColorStop(0.60, '#6a5236');
-    g.addColorStop(0.66, '#a8814a');
-    g.addColorStop(0.74, '#4a3a26');
+    g.addColorStop(0.40, '#0d0e11');
+    g.addColorStop(0.56, '#16171b');
+    g.addColorStop(0.63, '#3a3120');
+    g.addColorStop(0.67, '#a8823f');
+    g.addColorStop(0.71, '#2a2317');
     g.addColorStop(1.00, CINE.voidDeep);
     ctx.fillStyle = g; ctx.fillRect(0, 0, 8, 1024);
     const t = new THREE.CanvasTexture(c);
@@ -1055,17 +1167,17 @@ function Backdrop() {
 
   return (
     <group>
-      {/* Cyc backdrop — warm silk gradient, behind everything */}
+      {/* Cyc backdrop — cool graphite gradient, behind everything */}
       <mesh position={[0, 6, -18]}>
         <planeGeometry args={[120, 38]} />
         <meshBasicMaterial map={gradTex} toneMapped={false} />
       </mesh>
-      {/* Champagne emissive ribbon — wide, soft, luxury "inner heat" glow */}
+      {/* White strip light above the horizon — the showroom signature */}
       <mesh position={[0, 4.6, -15]}>
         <boxGeometry args={[26, 0.06, 0.04]} />
         <meshBasicMaterial color={CINE.hot} toneMapped={false} />
       </mesh>
-      {/* Faint horizon under-strip — desaturated gold whisper */}
+      {/* Faint cool under-strip at the floor join */}
       <mesh position={[0, -1.2, -15]}>
         <planeGeometry args={[60, 0.05]} />
         <meshBasicMaterial color={CINE.hotSoft} toneMapped={false} opacity={0.3} transparent />
@@ -1283,16 +1395,19 @@ function PostFX({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
     _dofTarget.x = camXRef.current * 0.55;
   });
   return (
-    <EffectComposer multisampling={2}>
+    <EffectComposer multisampling={CAPTURE ? 4 : 2}>
       {/* Screen-space AO — grounds the exploded layers against each other.
           CAPTURE-only: the pass costs too much frame time on mid-tier GPUs
           for the live page; the offline video carries the AO quality.
           (4× MSAA + "high" + dpr 1.5: 8×/ultra/dpr2 was 15s a frame and
           indistinguishable after the 1080p downscale.) */}
-      {CAPTURE && <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="performance" />}
-      <DepthOfField target={_dofTarget} focalLength={0.055} bokehScale={2.4} height={480} />
+      {CAPTURE && <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="high" />}
+      {/* Tamed DoF — the old bokehScale 2.4 was eating card detail at dwell
+          range; showroom look wants near-crisp everywhere with a whisper of
+          falloff. Lighter vignette for the same reason. */}
+      <DepthOfField target={_dofTarget} focalLength={0.04} bokehScale={1.2} height={480} />
       <Bloom luminanceThreshold={0.55} luminanceSmoothing={0.55} intensity={0.45} radius={1.1} mipmapBlur />
-      <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />
+      <Vignette offset={0.32} darkness={0.42} eskil={false} blendFunction={BlendFunction.NORMAL} />
     </EffectComposer>
   );
 }
@@ -1353,7 +1468,7 @@ export default function GPUHeroScene() {
       <Canvas
         shadows
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.72, outputColorSpace: THREE.SRGBColorSpace, preserveDrawingBuffer: CAPTURE }}
-        dpr={CAPTURE ? 1 : [1, 1.6]}
+        dpr={CAPTURE ? 1.5 : [1, 1.6]}
         camera={{ position: [LINEUP_X0, 4.6, 14], fov: 38 }}
       >
         <color attach="background" args={[CINE.voidDeep]} />
@@ -1376,11 +1491,17 @@ export default function GPUHeroScene() {
             kiss. Reflections now match the scene's own lighting story.
             (Drop-in upgrade path: <Environment files="/textures/studio.hdr">
             swaps this for a generated HDRI with zero other changes.) */}
-        <Environment resolution={256} environmentIntensity={0.45}>
-          <Lightformer form="rect" intensity={3.4} color="#fff2dc" position={[0, 12, 2]}  scale={[26, 5]} />
-          <Lightformer form="rect" intensity={1.1} color="#dfe7f2" position={[-16, 5, 6]} scale={[5, 9]} />
-          <Lightformer form="rect" intensity={0.9} color="#d4af37" position={[15, 4, -4]} scale={[5, 7]} />
-          <Lightformer form="rect" intensity={0.7} color="#c9a84c" position={[0, 2.2, -14]} scale={[34, 2.4]} />
+        {/* Champagne-showroom environment: one huge NEUTRAL white overhead
+            softbox (the unbroken specular band a car ad puts on body panels
+            — neutral key is what makes detail read crisp), platinum side
+            card left, and the brand's gold confined to two accents: the
+            right side card and the rear horizon band. Gold in reflections,
+            not in the air. */}
+        <Environment resolution={256} environmentIntensity={0.5}>
+          <Lightformer form="rect" intensity={4.2} color="#f4f6f9" position={[0, 12, 2]}  scale={[26, 5]} />
+          <Lightformer form="rect" intensity={1.2} color="#dfe7f2" position={[-16, 5, 6]} scale={[5, 9]} />
+          <Lightformer form="rect" intensity={0.85} color="#d4af37" position={[15, 4, -4]} scale={[5, 7]} />
+          <Lightformer form="rect" intensity={0.65} color="#c9a84c" position={[0, 2.2, -14]} scale={[34, 2.4]} />
           <Lightformer form="circle" intensity={0.35} color="#2c3340" position={[0, -8, 4]} scale={14} />
         </Environment>
         <CameraRig camXRef={camXRef} />

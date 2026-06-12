@@ -41,7 +41,7 @@ const browser = await chromium.launch({
   channel: 'chromium',
   args: ['--use-angle=metal', '--enable-gpu'],
 });
-const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+const page = await browser.newPage({ viewport: { width: 2560, height: 1440 } });
 await page.clock.install();
 // Bare scene route — no landing-page text/HUD overlays baked into frames
 await page.goto('http://localhost:4175/capture/hero?capture=1', { waitUntil: 'domcontentloaded' });
@@ -80,7 +80,7 @@ execFileSync(FFMPEG, [
   '-i', path.join(FRAME_DIR, 'f%04d.png'),
   '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
   '-crf', '19', '-preset', 'slow',
-  '-vf', 'scale=1920:-2',
+  '-vf', 'scale=2560:-2',
   '-movflags', '+faststart',
   OUT,
 ], { stdio: 'inherit' });
