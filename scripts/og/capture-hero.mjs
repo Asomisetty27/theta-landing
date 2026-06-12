@@ -45,6 +45,11 @@ const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 await page.clock.install();
 // Bare scene route — no landing-page text/HUD overlays baked into frames
 await page.goto('http://localhost:4175/capture/hero?capture=1', { waitUntil: 'domcontentloaded' });
+// CRITICAL: install() alone leaves the clock ticking in REAL time — runFor
+// only adds jumps on top. Unpaused, every slow screenshot leaked seconds of
+// wall-clock into the scene between frames (the "sped up" videos). Pause so
+// virtual time advances ONLY via runFor.
+await page.clock.pauseAt(Date.now() + 60_000);
 
 // Warm-up: lazy chunks + textures load over (real) network while the page's
 // virtual clock advances in small steps. Interleave the two until the canvas

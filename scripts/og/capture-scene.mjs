@@ -37,6 +37,9 @@ const browser = await chromium.launch({ channel: 'chromium', args: ['--use-angle
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 await page.clock.install();
 await page.goto(`http://localhost:${PORT}${ROUTE}?capture=1`, { waitUntil: 'domcontentloaded' });
+// CRITICAL: pause, or the clock keeps ticking in real time between runFor
+// steps and wall-clock leaks into the scene (the "sped up" capture bug).
+await page.clock.pauseAt(Date.now() + 60_000);
 
 for (let i = 0; i < 120; i++) {
   await page.clock.runFor(100);
