@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { RoundedBox, Environment, Html, Instances, Instance } from '@react-three/drei';
+import { RoundedBox, Environment, Html, Instances, Instance, Lightformer } from '@react-three/drei';
 import {
   EffectComposer,
   Bloom,
   ChromaticAberration,
   Vignette,
+  N8AO,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
@@ -433,6 +434,17 @@ function Environment3D({ textures }: { textures: Textures }) {
           <meshStandardMaterial color="#0c0c10" roughness={0.6} metalness={0.5} />
         </mesh>
       ))}
+      {/* Aisle light fixtures — segmented troffers (not continuous bars), the
+          visible counterparts to the environment-map strips. Tone-mapped so
+          ACES rolls them off instead of clipping to white. */}
+      {[-0.9, 0.9].flatMap((x) =>
+        Array.from({ length: Math.ceil((farZ + 18) / 4.2) }).map((_, s) => (
+          <mesh key={`bar-${x}-${s}`} position={[x, RACK_H + 1.45, -12 + s * 4.2]}>
+            <boxGeometry args={[0.12, 0.025, 2.0]} />
+            <meshBasicMaterial color="#b7c6e4" />
+          </mesh>
+        ))
+      )}
       <fogExp2 attach="fog" args={[T.bg, 0.018]} />
     </group>
   );
@@ -509,6 +521,9 @@ function PostFX({ bloomRef }: { bloomRef: React.MutableRefObject<number> }) {
   });
   return (
     <EffectComposer multisampling={0}>
+      {/* AO seats the sleds into their rack slots and darkens the rail gaps —
+          the single biggest "rendered vs real" tell at rack-inspection range */}
+      <N8AO aoRadius={0.7} intensity={2.2} distanceFalloff={1.0} quality="medium" halfRes />
       <Bloom ref={bloomEffectRef} luminanceThreshold={0.32} luminanceSmoothing={0.2} intensity={0.5} radius={0.45} mipmapBlur />
       <ChromaticAberration offset={_caOffset} blendFunction={BlendFunction.NORMAL} radialModulation={false} modulationOffset={0.15} />
       <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />
@@ -738,7 +753,21 @@ export default function DataCenterScene({ hudScale = 1 }: { hudScale?: number })
         <RackFaceplates textures={textures} />
         <HeroSled thermalLevelRef={thermalLevelRef} />
         <AlertRing />
-        <Environment preset="warehouse" environmentIntensity={0.5} />
+        {/* Custom cold-aisle environment — replaces the stock warehouse HDRI.
+            Repeating overhead strips down the aisle put the datacenter's
+            signature blue-white bands into every faceplate and rail
+            reflection; the faint warm rear former separates the hot aisle.
+            (Drop-in upgrade path: <Environment files="..."> swaps in a
+            generated HDRI with zero other changes.) */}
+        <Environment resolution={256} environmentIntensity={0.75}>
+          {[0, 9, 18, 27].map((z) => (
+            <Lightformer key={z} form="rect" intensity={2.6} color="#cfdcf2"
+              position={[0, 9, z]} scale={[2.6, 10]} target={[0, 0, z]} />
+          ))}
+          <Lightformer form="rect" intensity={0.5} color="#dfe7f2" position={[-18, 4, 10]} scale={[4, 24]} />
+          <Lightformer form="rect" intensity={0.5} color="#dfe7f2" position={[18, 4, 10]} scale={[4, 24]} />
+          <Lightformer form="rect" intensity={0.35} color="#3a2c1c" position={[0, 3, 40]} scale={[30, 6]} />
+        </Environment>
         <CameraRig />
         <NarrativeDirector thermalLevelRef={thermalLevelRef} bloomRef={bloomRef} phaseRef={phaseRef} valuesRef={valuesRef} />
         <PostFX bloomRef={bloomRef} />

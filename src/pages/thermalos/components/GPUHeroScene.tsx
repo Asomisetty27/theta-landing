@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { useRef, useMemo, useEffect, useState, Suspense, createContext, useContext } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { RoundedBox, Environment, Html, ContactShadows, MeshReflectorMaterial } from '@react-three/drei';
+import { RoundedBox, Environment, Html, ContactShadows, MeshReflectorMaterial, Lightformer } from '@react-three/drei';
 import {
   EffectComposer,
   Bloom,
   Vignette,
   DepthOfField,
+  N8AO,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
@@ -1131,7 +1132,7 @@ function SceneLights({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
       {/* Champagne cyc wash — warm bleed across rear of cards, very low */}
       <rectAreaLight ref={cycRef} position={[0, 3.5, -10]} width={20} height={5} intensity={1.1} color={CINE.hot} />
       {/* Per-card traveling key — tight liquid-platinum spot, deep falloff */}
-      <spotLight ref={spotRef} position={[0, 11, 6]} angle={0.32} penumbra={0.88} intensity={42} color={CINE.rim} distance={22} decay={2.2} castShadow />
+      <spotLight ref={spotRef} position={[0, 11, 6]} angle={0.32} penumbra={0.88} intensity={42} color={CINE.rim} distance={22} decay={2.2} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.00018} />
       {/* Warm blackpoint ambient — barely there */}
       <ambientLight intensity={0.018} color={CINE.void} />
     </>
@@ -1190,6 +1191,9 @@ function PostFX({ camXRef }: { camXRef: React.MutableRefObject<number> }) {
   });
   return (
     <EffectComposer multisampling={2}>
+      {/* Screen-space AO — grounds the exploded layers against each other;
+          the gaps between PCB / interposer / cold plate read as real depth */}
+      <N8AO aoRadius={1.0} intensity={2.6} distanceFalloff={1.2} quality="medium" halfRes />
       <DepthOfField target={_dofTarget} focalLength={0.055} bokehScale={2.4} height={480} />
       <Bloom luminanceThreshold={0.55} luminanceSmoothing={0.55} intensity={0.45} radius={1.1} mipmapBlur />
       <Vignette offset={0.32} darkness={0.55} eskil={false} blendFunction={BlendFunction.NORMAL} />
@@ -1337,7 +1341,21 @@ export default function GPUHeroScene() {
           </GpuMapsProvider>
         </Suspense>
         <ContactShadows position={[0, -3.39, 0]} opacity={0.92} scale={80} blur={3.2} far={6} resolution={1024} color="#000000" />
-        <Environment preset="warehouse" environmentIntensity={0.16} />
+        {/* Custom studio environment — replaces the stock warehouse HDRI.
+            Five light formers model a product-photography rig: the long
+            overhead softbox draws an unbroken specular band down every
+            heatsink fin; the platinum + champagne side cards split the
+            metals warm/cool; the rear horizon band gives fin edges a gold
+            kiss. Reflections now match the scene's own lighting story.
+            (Drop-in upgrade path: <Environment files="/textures/studio.hdr">
+            swaps this for a generated HDRI with zero other changes.) */}
+        <Environment resolution={256} environmentIntensity={0.45}>
+          <Lightformer form="rect" intensity={3.4} color="#fff2dc" position={[0, 12, 2]}  scale={[26, 5]} />
+          <Lightformer form="rect" intensity={1.1} color="#dfe7f2" position={[-16, 5, 6]} scale={[5, 9]} />
+          <Lightformer form="rect" intensity={0.9} color="#d4af37" position={[15, 4, -4]} scale={[5, 7]} />
+          <Lightformer form="rect" intensity={0.7} color="#c9a84c" position={[0, 2.2, -14]} scale={[34, 2.4]} />
+          <Lightformer form="circle" intensity={0.35} color="#2c3340" position={[0, -8, 4]} scale={14} />
+        </Environment>
         <CameraRig camXRef={camXRef} />
         <PostFX camXRef={camXRef} />
       </Canvas>
