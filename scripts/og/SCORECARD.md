@@ -69,7 +69,22 @@ Machine: 0 errors · 0/0 overflow · hero 17.5:1 · body warm
 |-----|---|---|---|---|---|---|---|---|---|-----------|
 | Score | 18 | 12.5 | 13 | 9 | 8.5 | 6 | 8 | 5 | 3.5 | **83.5** |
 
-## Trajectory: 70.5 → 78.3 → 81.3 → 83.5 (+13.0)
+### Iter 4 — mixed art direction (dramatic anchors) + Higgsfield asset + mobile
+Edits: Higgsfield-rendered isotherm field (nano_banana, 2 credits) as the Gap-section
+dramatic backdrop — real thermal-contour θ; data sections keep restrained SVG fields
+(the "use one for some, the other for others" direction). Mobile terminal height now
+responsive (-1 screenful of scroll). Shipped: commit fa795a0, pushed to main → Vercel.
+Machine: 0 errors · 0/0 overflow · hero 17.5:1 · build clean
+| Dim | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | **Total** |
+|-----|---|---|---|---|---|---|---|---|---|-----------|
+| Score | 18.5 | 12.5 | 13 | 9.5 | 9.5 | 6 | 8 | 5.5 | 3.5 | **86.0** |
+
+## Trajectory: 70.5 → 78.3 → 81.3 → 83.5 → 86.0 (+15.5) · SHIPPED fa795a0
+
+NOTE: "Motion in-browser" was verified (reduced-motion fallback present, entrance/
+typewriter/reveal animations confirmed firing) but NOT enhanced — adding new
+micro-interactions (hover choreography, the brand-spec "thermal pulse") is a dedicated
+pass still owed. Motion stays 6/8.
 
 ## Remaining ceiling (needs decisions / live testing — not safe-autonomous)
 - **Motion & interaction craft (6→8, +2):** entrance choreography, hover micro-interactions,
