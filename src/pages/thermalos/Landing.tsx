@@ -37,7 +37,10 @@ const T = {
   borderHi:  '#5A5142',
   text:      COLORS.steel.bright,
   muted:     COLORS.steel.muted,
-  faint:     COLORS.steel.faint,
+  // Caption tier: was steel.faint (#48402F, ~1.9:1 — invisible). Decoupled
+  // from the border tier and lifted to a warm gray that clears WCAG AA
+  // (~5:1 on obsidian) while still reading clearly as tertiary text.
+  faint:     '#8A8073',
   healthy:   COLORS.thermal.healthy,
   caution:   COLORS.thermal.caution,
   rising:    COLORS.thermal.rising,
@@ -417,31 +420,30 @@ function Hero() {
             </span>
             <Tag>MIT licensed · single-node free forever</Tag>
           </div>
+          {/* One display family for the whole headline (no mixed faces inside
+              an element), floating clean over the scene — showroom text, not
+              boxed UI chrome. The corner bracket stays as the calibration mark. */}
           <h1 data-h style={{
             opacity: 0,
-            fontFamily: FD,
-            fontSize: 'clamp(34px,4.4vw,60px)',
-            fontWeight: 700,
-            letterSpacing: '-.04em',
-            lineHeight: 0.95,
-            marginBottom: 18,
+            fontFamily: "'Clash Display', 'Satoshi', Inter, system-ui, sans-serif",
+            fontSize: 'clamp(38px,4.8vw,66px)',
+            fontWeight: 600,
+            letterSpacing: '-.035em',
+            lineHeight: 0.98,
+            marginBottom: 20,
             position: 'relative',
             paddingLeft: 20,
             paddingTop: 12,
-            background: `linear-gradient(135deg, ${T.bg} 0%, ${T.s0} 50%, ${T.bg} 100%)`,
-            borderTop: `1px solid ${T.faint}`,
-            borderLeft: `1px solid ${T.faint}`,
           }}>
-            {/* Corner bracket — lab-instrument style */}
             <span style={{ position: 'absolute', top: 0, left: 0, width: 16, height: 16, border: `1px solid ${T.amber}`, borderRight: 'none', borderBottom: 'none' }} />
-            Thermal forensics<br />for <span className="tos-grad-text" style={{ fontFamily: "'Clash Display', 'Satoshi', Inter, system-ui, sans-serif", fontWeight: 600, letterSpacing: '-.03em' }}>GPU clusters.</span>
+            Thermal forensics<br />for <span className="tos-grad-text">GPU clusters.</span>
           </h1>
           <p data-h style={{
             opacity: 0,
             fontFamily: FD,
             fontSize: 15,
             lineHeight: 1.62,
-            color: '#9a9aaa',
+            color: T.muted,
             maxWidth: 420,
             marginBottom: 18,
           }}>
@@ -495,7 +497,7 @@ function Hero() {
               }}>
                 {/* Calibration label */}
                 <div style={{ fontFamily: FM, fontSize: 7.5, letterSpacing: '0.22em', color: T.amber, textTransform: 'uppercase', marginBottom: 12, opacity: 0.7 }}>
-                  ⬚ {String(i + 1).padStart(2, '0')} / {String(HERO_STATS.length).padStart(2, '0')}
+                  θ {String(i + 1).padStart(2, '0')} / {String(HERO_STATS.length).padStart(2, '0')}
                 </div>
                 <div style={{ fontFamily: FM, fontSize: 28, fontWeight: 600, letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums', background: 'linear-gradient(135deg, #F0EADC 0%, #D4AF37 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.v}</div>
                 <div style={{ fontFamily: FM, fontSize: 9, color: T.healthy, marginTop: 6, letterSpacing: '.08em', textTransform: 'uppercase' }}>{s.l}</div>
@@ -812,7 +814,7 @@ function Evidence() {
     <section ref={ref} id="evidence" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
       <ShowroomLight intensity={0.8} />
-      <ThetaField rings={6} baseR={58} cx="86%" cy="16%" opacity={0.35} />
+      <ThetaField rings={6} baseR={58} cx="86%" cy="16%" opacity={0.44} />
       <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.3, zIndex: 1 }} />
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-e style={{ opacity: 0, marginBottom: 48 }}>
@@ -1008,7 +1010,7 @@ function FeaturesGrid() {
     <section ref={ref} id="features" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <ThetaDivider />
       <ShowroomLight intensity={0.8} />
-      <ThetaField rings={5} baseR={66} cx="82%" cy="80%" opacity={0.32} glow={false} />
+      <ThetaField rings={5} baseR={66} cx="82%" cy="80%" opacity={0.42} glow={false} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-f style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Capabilities" title={<>Built for fleets<br />NVIDIA won&apos;t serve.</>}
@@ -1199,9 +1201,27 @@ function CompetitorTable() {
   }, [inView]);
   const us = CMP_COLS.length - 1;
   return (
-    <section ref={ref} id="gap" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+    <section ref={ref} id="gap" style={{ borderTop: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden' }}>
       <ThetaDivider />
-      <ThetaField rings={4} baseR={60} cx="10%" cy="20%" opacity={0.3} glow={false} />
+      {/* Dramatic signature backdrop — Higgsfield-rendered isotherm field: the
+          θ construction as a real thermal contour map (champagne rings + the
+          calibration crossbar through a center ellipse). Used ONLY on this
+          emotional beat ("none compute R_θ"); the data-dense sections keep the
+          lighter SVG ThetaField. The asset's own bg is obsidian, so it blends
+          seamlessly; the radial mask fades it into the section. */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <img
+          src="/textures/isotherm-field.png"
+          alt=""
+          loading="lazy"
+          style={{
+            position: 'absolute', top: '50%', right: '-6%', transform: 'translateY(-50%)',
+            width: 'min(1180px, 78%)', opacity: 0.6,
+            maskImage: 'radial-gradient(ellipse 62% 70% at 56% 50%, #000 30%, transparent 74%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 62% 70% at 56% 50%, #000 30%, transparent 74%)',
+          }}
+        />
+      </div>
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-c style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="The Gap" title={<>NVIDIA ships three<br />telemetry products.<br />None compute R<sub>θ</sub>.</>}
@@ -1429,10 +1449,22 @@ function Footer() {
 
 /* ─── Global styles ───────────────────────────────────────────────────────── */
 const STYLES = `
+html { scroll-behavior: smooth; }
 .tos-root { background: ${T.bg}; color: ${T.text}; font-family: ${FD}; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; min-height: 100vh; overflow-x: clip; }
 .tos-root a { text-decoration: none; color: inherit; }
 .tos-root * { box-sizing: border-box; }
 .tos-root button { box-sizing: border-box; }
+/* anchors land clear of the sticky nav */
+.tos-root section[id] { scroll-margin-top: 66px; }
+/* keyboard focus is a designed state, not a browser default */
+.tos-root a:focus-visible,
+.tos-root button:focus-visible,
+.tos-root input:focus-visible,
+.tos-root [tabindex]:focus-visible {
+  outline: 2px solid rgba(212,175,55,.85);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 /* ── Blueprint grid ─────────────────────────────────────────────────────── */
 .tos-grid-bg {
@@ -1545,11 +1577,16 @@ const STYLES = `
 
 /* ── Feature card hover glow ─────────────────────────────────────────────── */
 .tos-feat-card {
-  transition: border-color .2s, box-shadow .25s;
+  transition: border-color .2s, box-shadow .25s, transform .25s cubic-bezier(.22,.68,0,1);
 }
 .tos-feat-card:hover {
   border-color: rgba(212,175,55,.25) !important;
-  box-shadow: 0 0 0 1px rgba(212,175,55,.08), 0 8px 24px rgba(0,0,0,.28);
+  box-shadow: 0 0 0 1px rgba(212,175,55,.08), 0 18px 36px -12px rgba(0,0,0,.45);
+  transform: translateY(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tos-feat-card:hover { transform: none; }
+  html { scroll-behavior: auto; }
 }
 .tos-feat-card:hover .tos-feat-index { color: ${T.healthy} !important; }
 
@@ -1628,6 +1665,9 @@ const STYLES = `
 @media (max-width: 600px) {
   .tos-features-grid { grid-template-columns: 1fr !important; }
   .tos-hero-stats { grid-template-columns: 1fr !important; }
+  /* Reclaim a screenful of mobile scroll — the terminal types to fit rather
+     than reserving desktop height while mostly empty. */
+  .tos-term-body { min-height: 260px !important; max-height: 360px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tos-pulse, [data-bar], [data-trace], [data-h], [data-r], [data-e], [data-f], [data-c], [data-p] {
@@ -1828,7 +1868,7 @@ function TerminalDemo() {
             </div>
 
             {/* Terminal body */}
-            <div ref={bodyRef} style={{
+            <div ref={bodyRef} className="tos-term-body" style={{
               padding: '18px 22px 22px',
               minHeight: 380,
               maxHeight: 440,

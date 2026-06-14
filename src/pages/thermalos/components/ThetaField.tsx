@@ -64,7 +64,7 @@ export function ThetaField({
         key={i}
         cx={cxN} cy={cyN} rx={r} ry={ry}
         fill="none"
-        strokeWidth={0.8}
+        strokeWidth={1.2}
         strokeDasharray={dashed ? '5 11' : undefined}
         opacity={o}
         transform={`rotate(${RING_TILT[i % RING_TILT.length]} ${cxN} ${cyN})`}
@@ -77,7 +77,7 @@ export function ThetaField({
           key={`${i}${sx}`}
           x1={cxN + sx * r} y1={cyN - 5}
           x2={cxN + sx * r} y2={cyN + 5}
-          strokeWidth={0.8} opacity={o * 0.9}
+          strokeWidth={1.2} opacity={o * 0.9}
         />,
       );
     }
@@ -114,7 +114,7 @@ export function ThetaField({
         </defs>
         {glow && <ellipse cx={cxN} cy={cyN} rx={baseR * 3.4} ry={baseR * 4.2} fill={`url(#${gradId})`} />}
         {/* the crossbar — full-bleed hairline through the field center */}
-        <line x1={0} y1={cyN} x2={W} y2={cyN} stroke={`url(#${foilId})`} strokeWidth={0.7} opacity={0.25} />
+        <line x1={0} y1={cyN} x2={W} y2={cyN} stroke={`url(#${foilId})`} strokeWidth={1} opacity={0.32} />
         <g stroke={`url(#${foilId})`}>
           {ringEls}
           {tickEls}

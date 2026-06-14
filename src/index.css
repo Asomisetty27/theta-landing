@@ -8,25 +8,25 @@
 @layer base {
   :root {
     --background: 220 20% 4%;
-    --foreground: 210 20% 92%;
+    --foreground: 40 22% 91%;  /* warm ivory — Theta palette, was cool 210 */
 
     --card: 220 18% 7%;
-    --card-foreground: 210 20% 92%;
+    --card-foreground: 40 22% 91%;  /* warm ivory — Theta palette, was cool 210 */
 
     --popover: 220 18% 7%;
-    --popover-foreground: 210 20% 92%;
+    --popover-foreground: 40 22% 91%;  /* warm ivory — Theta palette, was cool 210 */
 
     --primary: 170 80% 50%;
     --primary-foreground: 220 20% 4%;
 
     --secondary: 220 16% 14%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary-foreground: 40 18% 86%;
 
     --muted: 220 14% 12%;
-    --muted-foreground: 215 12% 50%;
+    --muted-foreground: 38 11% 57%;
 
     --accent: 280 70% 60%;
-    --accent-foreground: 210 20% 95%;
+    --accent-foreground: 40 22% 94%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 210 40% 98%;
