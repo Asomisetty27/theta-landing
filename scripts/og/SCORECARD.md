@@ -79,12 +79,21 @@ Machine: 0 errors · 0/0 overflow · hero 17.5:1 · build clean
 |-----|---|---|---|---|---|---|---|---|---|-----------|
 | Score | 18.5 | 12.5 | 13 | 9.5 | 9.5 | 6 | 8 | 5.5 | 3.5 | **86.0** |
 
-## Trajectory: 70.5 → 78.3 → 81.3 → 83.5 → 86.0 (+15.5) · SHIPPED fa795a0
+### Iter 5 — motion pass (the brand signature gesture)
+Implemented the brand_system "thermal pulse" — a hairline ring expanding from each
+live-indicator dot and fading like an isotherm front (was just an opacity blink). Now
+on all `<Pulse>` sites (PyPI-live, state tags, view-on-PyPI). Primary install CTA hover
+upgraded: lift + gold drop-glow (was bare brightness). Verified in-browser (Playwright
+hover drive): 0 overflow, 0 page errors, reduced-motion resets both. Build clean.
+| Dim | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | **Total** |
+|-----|---|---|---|---|---|---|---|---|---|-----------|
+| Score | 18.5 | 12.5 | 13 | 9.5 | 9.5 | 7.5 | 8 | 5.5 | 3.5 | **87.5** |
 
-NOTE: "Motion in-browser" was verified (reduced-motion fallback present, entrance/
-typewriter/reveal animations confirmed firing) but NOT enhanced — adding new
-micro-interactions (hover choreography, the brand-spec "thermal pulse") is a dedicated
-pass still owed. Motion stays 6/8.
+## Trajectory: 70.5 → 78.3 → 81.3 → 83.5 → 86.0 → 87.5 (+17.0)
+
+Motion 6→7.5: signature gesture + CTA now present. Remaining ceiling is mostly
+diminishing-returns polish (mobile density 8→9.5, deeper scroll-choreography) and
+subjective art-direction calls — no single large lever left.
 
 ## Remaining ceiling (needs decisions / live testing — not safe-autonomous)
 - **Motion & interaction craft (6→8, +2):** entrance choreography, hover micro-interactions,

@@ -109,9 +109,15 @@ function Tag({ children, accent = false }: { children: React.ReactNode; accent?:
   );
 }
 
+// The brand's signature gesture (brand_system.md): a ring expanding from a
+// point and fading as it grows — "the thermal pulse." The core dot keeps its
+// gentle breathing; a hairline ring ripples outward like an isotherm front.
 function Pulse({ color = T.healthy }: { color?: string }) {
   return (
-    <span className="tos-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+    <span className="tos-pulse-wrap" style={{ position: 'relative', display: 'inline-flex', width: 6, height: 6, flexShrink: 0 }}>
+      <span className="tos-pulse-ring" aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}` }} />
+      <span className="tos-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: color }} />
+    </span>
   );
 }
 
@@ -309,9 +315,9 @@ function Nav() {
             <GithubIcon s={12} /> github
           </a>
           <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FD, fontSize: 13, fontWeight: 500, padding: '6px 14px', borderRadius: 4, background: 'linear-gradient(180deg, #F2D788 0%, #D4AF37 55%, #A8852B 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.25), 0 2px 12px rgba(212,175,55,.2)', color: '#1A1408', textDecoration: 'none', transition: 'filter .15s' }}
-            onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.filter = 'brightness(1.08)')}
-            onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.filter = 'none')}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FD, fontSize: 13, fontWeight: 500, padding: '6px 14px', borderRadius: 4, background: 'linear-gradient(180deg, #F2D788 0%, #D4AF37 55%, #A8852B 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.25), 0 2px 12px rgba(212,175,55,.2)', color: '#1A1408', textDecoration: 'none', transition: 'filter .15s, transform .15s, box-shadow .2s' }}
+            onMouseEnter={e => { const t = e.currentTarget as HTMLAnchorElement; t.style.filter = 'brightness(1.07)'; t.style.transform = 'translateY(-1px)'; t.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.25), 0 6px 20px rgba(212,175,55,.38)'; }}
+            onMouseLeave={e => { const t = e.currentTarget as HTMLAnchorElement; t.style.filter = 'none'; t.style.transform = 'none'; t.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.25), 0 2px 12px rgba(212,175,55,.2)'; }}>
             install <ArrowRight s={11} />
           </a>
         </div>
@@ -1593,6 +1599,14 @@ html { scroll-behavior: smooth; }
 /* ── Pulse dot ───────────────────────────────────────────────────────────── */
 @keyframes tos-pulse { 0%,100% { opacity:.3 } 50% { opacity:.9 } }
 .tos-pulse { animation: tos-pulse 1.8s ease-in-out infinite; }
+/* thermal pulse — the signature gesture: a hairline ring expands from the dot
+   and fades, like an isotherm front moving outward. */
+@keyframes tos-pulse-ring {
+  0%   { transform: scale(1);   opacity: .55; }
+  70%  { opacity: 0; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+.tos-pulse-ring { animation: tos-pulse-ring 2.6s cubic-bezier(.16,1,.3,1) infinite; }
 
 /* ── Terminal caret blink ────────────────────────────────────────────────── */
 @keyframes tos-caret-blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }
@@ -1670,7 +1684,7 @@ html { scroll-behavior: smooth; }
   .tos-term-body { min-height: 260px !important; max-height: 360px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tos-pulse, [data-bar], [data-trace], [data-h], [data-r], [data-e], [data-f], [data-c], [data-p] {
+  .tos-pulse, .tos-pulse-ring, [data-bar], [data-trace], [data-h], [data-r], [data-e], [data-f], [data-c], [data-p] {
     animation: none !important; opacity: 1 !important; transform: none !important;
     stroke-dasharray: none !important; stroke-dashoffset: 0 !important;
   }
