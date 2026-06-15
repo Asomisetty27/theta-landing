@@ -67,6 +67,16 @@
   }
 }
 
+/* Paint html + body obsidian explicitly (not just via @apply, which was
+   resolving transparent and letting browser-default white show in the body
+   margin and the scrollbar gutter — the "white sides"). Belt-and-suspenders:
+   margin:0 removes the 8px gutter, and the literal color guarantees full-bleed
+   dark even before Tailwind base loads or if a route doesn't mount .tos-root. */
+html, body {
+  margin: 0;
+  background-color: #050407;
+}
+
 /* Hide system cursor only when custom cursor is mounted (set via body class) */
 @media (pointer: fine) {
   body.custom-cursor-active,
