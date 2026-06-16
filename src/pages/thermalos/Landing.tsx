@@ -1109,18 +1109,98 @@ function FeaturesGrid() {
  * → governor → surfaces).
  */
 const PIPELINE_STAGES = [
-  { n: '01', name: 'Collect',  code: 'pynvml / DCGM · 5s', desc: 'T_junction, power, util, P-state — NVIDIA & AMD, no kernel module.' },
-  { n: '02', name: 'Compute R_θ', code: 'ΔT / P', desc: 'Effective thermal resistance. Virtual ambient T_ref from the GPU’s own idle — no thermocouple.', glyph: true },
-  { n: '03', name: 'Steady-state window', code: 'σ < 0.03 C/W', desc: 'Classify only on stable windows — lifts accuracy 84% → 99.8%, kills transients.' },
-  { n: '04', name: 'Classify', code: 'Decision Tree', desc: 'Four states: clean idle · under load · CUDA zombie · recovery.', states: true },
-  { n: '05', name: 'Detect', code: 'temporal + peer', desc: 'Drift vs the GPU’s own baseline, plus peer-relative vs node-mates — no warm-up.' },
-  { n: '06', name: 'Govern', code: 'trust layer', desc: 'First-run warming + a false-positive circuit breaker — zero false alarms hour-one.' },
-  { n: '07', name: 'Surface', code: 'act on it', desc: 'Alerts (Slack · PagerDuty · Opsgenie), health conditions, Prometheus & OTLP.' },
+  {
+    n: '01', name: 'Collect', code: 'pynvml / DCGM · 5s',
+    desc: 'T_junction, power, util, P-state — NVIDIA & AMD, no kernel module.',
+    deep: 'A hardware-abstraction layer picks the backend at startup — pynvml/DCGM for NVIDIA, amdsmi for AMD — and streams one sample per GPU every 5 seconds on an async loop. A self-healing layer re-initializes a GPU handle after 3 consecutive read failures instead of dying, and per-GPU poll latency is tracked as an early hang signal. MIG and vGPU are detected at init, so R_θ is computed per physical die and never fabricated for a guest that can’t read power.',
+    spec: [
+      'HAL → NVMLCollector | ROCmCollector | demo',
+      'RawSample { temp_junction, power_w, util_pct,',
+      '            perf_state, clock_sm/mem, ecc_sbit/dbit,',
+      '            throttle_reasons, poll_latency_s }',
+      'interval 5s · async · self-heal after 3 misses',
+      'MIG → per physical die · vGPU → TelemetryUnavailable',
+    ],
+  },
+  {
+    n: '02', name: 'Compute R_θ', code: 'ΔT / P', glyph: true,
+    desc: 'Effective thermal resistance. Virtual ambient T_ref from the GPU’s own idle — no thermocouple.',
+    deep: 'R_θ is thermal resistance — how many degrees the die heats per watt it burns. The hard part is T_ref (inlet/ambient): there’s usually no sensor, so Theta derives a virtual ambient from the GPU’s own stable idle windows and locks it. The computation refuses to return nonsense — below 5 W or under 0.5 °C of ΔT it yields no value rather than a garbage ratio. R_θ is most T_ref-sensitive at idle (a 5 °C error swings it ~35%) and robust under load (~10%), so detection leans on under-load and peer-relative comparison, where T_ref cancels entirely.',
+    spec: [
+      'R_θ = (T_junction − T_ref) / P_GPU      [°C/W]',
+      'T_ref = virtual ambient, locked from idle windows',
+      'guards: P ≥ 5 W and ΔT ≥ 0.5 °C, else skip',
+      'sensitivity (F2): 5 °C T_ref error',
+      '  → 35% swing idle · 10% under load',
+    ],
+  },
+  {
+    n: '03', name: 'Steady-state window', code: 'σ < 0.03 C/W',
+    desc: 'Classify only on stable windows — lifts accuracy 84% → 99.8%, kills transients.',
+    deep: 'R_θ only means something at thermal equilibrium — during a load ramp it’s transiently inflated and meaningless. So classification runs on a 15-second rolling window and only fires when that window is stable: standard deviation under 0.03 °C/W. On the Stage-1 Tesla T4 data this single gate took Naive Bayes accuracy from 84% to 99.8% and eliminated transient false positives — the cheapest, highest-leverage filter in the pipeline.',
+    spec: [
+      'window = 15 s rolling, per GPU',
+      'stable iff σ(R_θ) < 0.03 °C/W',
+      'classification runs ONLY on stable windows',
+      'measured effect: NB accuracy 84% → 99.8%',
+    ],
+  },
+  {
+    n: '04', name: 'Classify', code: 'Decision Tree', states: true,
+    desc: 'Four states: clean idle · under load · CUDA zombie · recovery.',
+    deep: 'A Decision Tree — chosen because its rules are human-readable and publishable, not a black box — maps a stable window to one of four states. Trained on 4,570 rows of Stage-1 T4 telemetry, it reaches 100% 5-fold cross-validation accuracy on steady-state samples. The thresholds are T4-specific; on other silicon `theta calibrate` measures the hardware’s own R_θ thresholds, so a healthy B200 (R_θ ≈ 0.27) isn’t misread as permanently idle against a T4’s 0.87 cut.',
+    spec: [
+      'IF R_θ ≤ 0.87          → under_load',
+      'IF R_θ > 0.87 ∧ P0     → zombie_recovery',
+      'IF R_θ > 1.50 ∧ P8     → child_exit_recovery',
+      'ELSE                   → clean_idle / recovery',
+      'trained 4,570 rows · 100% 5-fold CV',
+      'non-T4 hardware → theta calibrate',
+    ],
+  },
+  {
+    n: '05', name: 'Detect', code: 'temporal + peer',
+    desc: 'Drift vs the GPU’s own baseline, plus peer-relative vs node-mates — no warm-up.',
+    deep: 'Two complementary detectors. The temporal one compares each GPU to its OWN rolling healthy baseline and flags R_θ above mean + k·σ sustained over consecutive windows, with a robust Theil-Sen slope projecting an ETA to the threshold. Its blind spot — it needs warm-up and can’t see a unit degraded since startup — is closed by the peer-relative detector: cross-sectional, comparing each GPU to its matched-power node-mates via median/MAD robust-z, no warm-up. Across a fleet, two-way (node × ordinal) median polish first removes HGX baseboard-position structure. On real Princeton H100s this blind-flagged 3 degraded units — one invisible to any temperature threshold.',
+    spec: [
+      'temporal: R_θ > μ + k·σ sustained',
+      '  k_warn 2.0 · k_crit 3.5 · baseline ≥ 20 samples',
+      '  Theil-Sen slope → ETA-to-threshold',
+      'peer: robust-z = (R_θ − median)/(1.4826·MAD)',
+      '  matched power ±15% · self-disables < 4 peers',
+      'fleet: node×ordinal median polish (E009: 3/3, 0 FP)',
+    ],
+  },
+  {
+    n: '06', name: 'Govern', code: 'trust layer',
+    desc: 'First-run warming + a false-positive circuit breaker — zero false alarms hour-one.',
+    deep: 'Before any inferential alert reaches a human it passes the governor — the layer that earns first-run trust. On a freshly-seen GPU, R_θ-derived alerts are HELD while the baseline establishes (“learning, not yet confident”); ground-truth hardware faults (ECC, Xid, throttle) bypass and fire immediately. An active critical inhibits lower-severity alerts on the same GPU. And a false-positive circuit breaker watches the per-GPU alert rate — exceed the budget and that’s evidence of miscalibration, so the agent goes quiet on that GPU and fires exactly ONE meta-alert recommending `theta calibrate`, instead of spraying wrong alarms. One false-alarm thread kills OSS adoption; this is the discipline that prevents it.',
+    spec: [
+      'warming: hold inferential alerts until baseline set',
+      'inhibit: active critical suppresses sub-critical',
+      'FP budget: > 12 inferential/hr/GPU → trip breaker',
+      '  → suppress + 1 meta-alert "run theta calibrate"',
+      'ground-truth (ECC/Xid/throttle) bypass — always fire',
+    ],
+  },
+  {
+    n: '07', name: 'Surface', code: 'act on it',
+    desc: 'Alerts (Slack · PagerDuty · Opsgenie), health conditions, Prometheus & OTLP.',
+    deep: 'What survives the governor fans out. Alerts route to stdout, Slack, a generic webhook, PagerDuty (Events API v2) and Opsgenie (Alert API) — with sliding-window dedup and stable keys, so a re-fire updates one incident instead of spawning new ones. Orthogonally, per-GPU health conditions (the node-problem-detector pattern) hand schedulers a single `schedulable` flag plus the reason and since-when. Every signal also exports to Prometheus and OpenTelemetry/OTLP, and an MCP server lets an operator’s LLM copilot ask “which GPUs are degrading, and why.”',
+    spec: [
+      'alerts: stdout · Slack · webhook · PagerDuty · Opsgenie',
+      '  sliding-window dedup + stable keys → one incident',
+      'health: /api/v1/conditions · schedulable flag (NPD)',
+      'metrics: Prometheus + OpenTelemetry / OTLP',
+      'ai-native: MCP server for LLM ops copilots',
+    ],
+  },
 ];
 
 function AgentPipeline() {
   const ref = useRef<HTMLElement | null>(null);
   const inView = useInView(ref, { once: true, amount: 0.12 });
+  const [active, setActive] = useState<number | null>(null);
   useEffect(() => {
     const root = ref.current;
     if (!root || !inView || rm()) return;
@@ -1160,24 +1240,57 @@ function AgentPipeline() {
         </div>
 
         <div className="tos-pipe-grid">
-          {PIPELINE_STAGES.map((s, i) => (
-            <div key={s.n} data-ap className="tos-pipe-stage" style={{ opacity: 0 }}>
-              <div className="tos-pipe-node">
-                {s.glyph ? <ThetaGlyph size={16} /> : <span style={{ fontFamily: FM, fontSize: 11, color: T.amber, letterSpacing: '.04em' }}>{s.n}</span>}
-              </div>
-              <div style={{ fontFamily: "'Clash Display','Satoshi',Inter,sans-serif", fontSize: 15, fontWeight: 600, color: T.text, letterSpacing: '-.02em', marginBottom: 4 }}>{s.name}</div>
-              <div style={{ fontFamily: FM, fontSize: 9, color: T.amber, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 9 }}>{s.code}</div>
-              <div style={{ fontFamily: FD, fontSize: 12, lineHeight: 1.55, color: T.muted }}>{s.desc}</div>
-              {s.states && (
-                <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                  {[T.bp, T.healthy, T.critical, T.caution].map((c, j) => (
-                    <span key={j} style={{ width: 7, height: 7, borderRadius: '50%', background: c, boxShadow: `0 0 6px ${c}55` }} />
-                  ))}
+          {PIPELINE_STAGES.map((s, i) => {
+            const isOpen = active === i;
+            return (
+              <button
+                key={s.n} data-ap type="button"
+                aria-expanded={isOpen}
+                onClick={() => setActive(isOpen ? null : i)}
+                className={`tos-pipe-stage${isOpen ? ' is-active' : ''}`}
+                style={{ opacity: 0 }}
+              >
+                <div className="tos-pipe-node">
+                  {s.glyph ? <ThetaGlyph size={16} /> : <span style={{ fontFamily: FM, fontSize: 11, color: T.amber, letterSpacing: '.04em' }}>{s.n}</span>}
                 </div>
-              )}
-            </div>
-          ))}
+                <div style={{ fontFamily: "'Clash Display','Satoshi',Inter,sans-serif", fontSize: 15, fontWeight: 600, color: T.text, letterSpacing: '-.02em', marginBottom: 4 }}>{s.name}</div>
+                <div style={{ fontFamily: FM, fontSize: 9, color: T.amber, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 9 }}>{s.code}</div>
+                <div style={{ fontFamily: FD, fontSize: 12, lineHeight: 1.55, color: T.muted }}>{s.desc}</div>
+                {s.states && (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                    {[T.bp, T.healthy, T.critical, T.caution].map((c, j) => (
+                      <span key={j} style={{ width: 7, height: 7, borderRadius: '50%', background: c, boxShadow: `0 0 6px ${c}55` }} />
+                    ))}
+                  </div>
+                )}
+                <span className="tos-pipe-expand" aria-hidden>{isOpen ? '− close' : '+ how it works'}</span>
+              </button>
+            );
+          })}
         </div>
+
+        {/* detail panel — opens on click, exact mechanism of the chosen stage */}
+        {active !== null && (() => {
+          const s = PIPELINE_STAGES[active];
+          return (
+            <div key={active} className="tos-pipe-detail" role="region" aria-label={`${s.name} — detail`}>
+              <Panel glass label={`Stage ${s.n} · ${s.name} — exact mechanism`}>
+                <div className="tos-pipe-detail-grid" style={{ padding: '20px 22px' }}>
+                  <p style={{ fontFamily: FD, fontSize: 14, lineHeight: 1.72, color: T.muted, margin: 0 }}>{s.deep}</p>
+                  <div style={{
+                    fontFamily: FM, fontSize: 11.5, lineHeight: 1.85, color: T.platinum,
+                    background: '#08080C', border: `1px solid ${T.border}`, borderRadius: 5,
+                    padding: '14px 16px', whiteSpace: 'pre', overflowX: 'auto',
+                  }}>
+                    {s.spec.map((line, j) => (
+                      <div key={j} style={{ color: line.trim().startsWith('//') || line.startsWith('  ') ? T.faint : T.platinum }}>{line}</div>
+                    ))}
+                  </div>
+                </div>
+              </Panel>
+            </div>
+          );
+        })()}
 
         {/* engineering-facts strip */}
         <div data-ap style={{ opacity: 0, marginTop: 40, display: 'flex', flexWrap: 'wrap', gap: 0, borderRadius: 6, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.s1 }}>
@@ -1693,8 +1806,18 @@ html { scroll-behavior: smooth; }
 }
 .tos-pipe-stage {
   position: relative;
-  padding: 18px 14px 18px 0;
+  padding: 18px 14px 30px 0;
   border-top: 1px solid rgba(212,175,55,.22);
+  /* button reset */
+  appearance: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  border-left: none; border-right: none; border-bottom: none;
+  transition: background .2s, border-color .2s;
 }
 .tos-pipe-stage::before {           /* the calibration tick at each stage start */
   content: '';
@@ -1702,6 +1825,41 @@ html { scroll-behavior: smooth; }
   top: -1px; left: 0;
   width: 22px; height: 2px;
   background: linear-gradient(90deg, #F5D98A, #D4AF37);
+  transition: width .25s ease;
+}
+.tos-pipe-stage:hover { border-top-color: rgba(212,175,55,.55); }
+.tos-pipe-stage:hover::before { width: 40px; }
+.tos-pipe-stage:hover .tos-pipe-node { border-color: rgba(212,175,55,.8); }
+.tos-pipe-stage.is-active { border-top-color: #F5D98A; }
+.tos-pipe-stage.is-active::before { width: 100%; }
+.tos-pipe-stage.is-active .tos-pipe-node {
+  border-color: #F5D98A;
+  background: radial-gradient(circle at 50% 35%, rgba(245,217,138,.28), transparent 70%), #181522;
+  box-shadow: 0 0 14px rgba(212,175,55,.3);
+}
+.tos-pipe-expand {
+  position: absolute;
+  bottom: 10px; left: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--t-faint, #8A8073);
+  opacity: .65; transition: opacity .2s, color .2s;
+}
+.tos-pipe-stage:hover .tos-pipe-expand,
+.tos-pipe-stage.is-active .tos-pipe-expand { opacity: 1; color: #D4AF37; }
+.tos-pipe-detail { margin-top: 22px; animation: tos-pipe-open .4s cubic-bezier(.22,.68,0,1) both; }
+@keyframes tos-pipe-open {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tos-pipe-detail-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 22px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .tos-pipe-detail-grid { grid-template-columns: 1fr; }
 }
 .tos-pipe-node {
   width: 30px; height: 30px;
@@ -1733,6 +1891,8 @@ html { scroll-behavior: smooth; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tos-pipe-pulse { display: none; }
+  .tos-pipe-detail { animation: none; }
+  .tos-pipe-stage, .tos-pipe-stage::before { transition: none; }
 }
 
 .tos-feat-card {
