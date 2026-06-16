@@ -2031,28 +2031,38 @@ html { scroll-behavior: smooth; }
 .tos-scroll-up:hover { animation-play-state: paused; }
 
 /* On-brand instrument dial: champagne fill on an obsidian groove, glowing thumb.
-   --fill (0–100%) is set inline from the value. */
+   --fill (0–100%) is set inline from the value. The INPUT keeps a tall hit area
+   (18px) for easy dragging; the thin track is drawn on the track pseudo-element,
+   not the input background — otherwise the grabbable area is only the track. */
 .tos-range {
   -webkit-appearance: none; appearance: none;
-  height: 5px; border-radius: 3px; outline: none; cursor: pointer;
+  width: 100%; height: 18px; background: transparent; outline: none; cursor: pointer;
+  margin: 0; padding: 0;
+}
+/* WebKit / Blink */
+.tos-range::-webkit-slider-runnable-track {
+  height: 5px; border-radius: 3px;
   background: linear-gradient(to right,
     #F5D98A 0%, #D4AF37 var(--fill, 50%),
     #221E16 var(--fill, 50%), #221E16 100%);
 }
 .tos-range::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  -webkit-appearance: none; margin-top: -5.5px;
+  width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
   background: radial-gradient(circle at 38% 32%, #F7E6B0, #D4AF37 70%);
-  border: 2px solid #0E0C12; margin-top: -5.5px; cursor: pointer;
+  border: 2px solid #0E0C12;
   box-shadow: 0 0 0 1px rgba(212,175,55,.45), 0 0 10px rgba(212,175,55,.3);
   transition: box-shadow .15s;
 }
+/* Firefox */
+.tos-range::-moz-range-track { height: 5px; border-radius: 3px; background: #221E16; }
+.tos-range::-moz-range-progress { height: 5px; border-radius: 3px; background: linear-gradient(to right, #F5D98A, #D4AF37); }
 .tos-range::-moz-range-thumb {
   width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
   background: radial-gradient(circle at 38% 32%, #F7E6B0, #D4AF37 70%);
   border: 2px solid #0E0C12;
   box-shadow: 0 0 0 1px rgba(212,175,55,.45), 0 0 10px rgba(212,175,55,.3);
 }
-.tos-range::-moz-range-track { background: transparent; height: 5px; }
 .tos-range:hover::-webkit-slider-thumb,
 .tos-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 1px #F5D98A, 0 0 16px rgba(212,175,55,.55); }
 .tos-range:hover::-moz-range-thumb { box-shadow: 0 0 0 1px #F5D98A, 0 0 16px rgba(212,175,55,.55); }
