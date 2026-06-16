@@ -273,7 +273,7 @@ function RthetaTrace() {
           <div style={{ padding: '8px 16px 10px', borderTop: `1px solid ${T.border}`, display: 'flex', gap: 20 }}>
             <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>77.9% separation idle→load</span>
             <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>·</span>
-            <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>recovery R_θ &gt; clean idle — thermal memory</span>
+            <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>recovery R_θ &gt; clean idle · thermal memory</span>
             <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>·</span>
             <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>E001–E004 · Tesla T4</span>
           </div>
@@ -453,7 +453,7 @@ function Hero() {
             maxWidth: 420,
             marginBottom: 18,
           }}>
-            Temperature alone is ambiguous — a hot GPU could be busy or failing.
+            Temperature alone is ambiguous. A hot GPU could be busy or failing.
             Theta computes{' '}
             <span style={{ fontFamily: FM, color: T.text, fontSize: 13.5 }}>R_θ = ΔT / P</span>{' '}
             in real time from your DCGM telemetry.
@@ -544,14 +544,14 @@ function Signal() {
           <div>
             <div data-r style={{ opacity: 0, marginBottom: 16 }}>
               <SectionHead eyebrow="The Signal" title={<>One equation.<br />Four states.<br />Zero hardware.</>}
-                body="DCGM exposes T_junction and P_GPU as separate fields and never divides them. R_θ is the one derived quantity every telemetry stack has the ingredients for — and no incumbent computes it." />
+                body="DCGM exposes T_junction and P_GPU as separate fields and never divides them. R_θ is the one derived quantity every telemetry stack has the ingredients for, yet no incumbent computes it." />
             </div>
             <div data-r style={{ opacity: 0, marginTop: 28 }}>
               <Panel label="Why utilization fails" style={{ marginTop: 0 }}>
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    ['zombie_recovery', '0%', '31W', 'CUDA zombie — invisible to util'],
-                    ['child_exit_recovery', '0%', '13W', 'clean recovery — invisible to util'],
+                    ['zombie_recovery', '0%', '31W', 'CUDA zombie, invisible to util'],
+                    ['child_exit_recovery', '0%', '13W', 'clean recovery, invisible to util'],
                     ['clean_idle', '0%', '11W', 'true idle'],
                   ].map(([state, util, pwr, note]) => (
                     <div key={state} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center', padding: '7px 0', borderBottom: `1px solid ${T.border}` }}>
@@ -791,7 +791,7 @@ function V2PowerRecoveryChart() {
                 )}
               </div>
               <span style={{ fontFamily: FM, fontSize: 10.5, color: hasData ? T.text : T.faint, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {hasData ? `${tr.pwrRec}s` : '—'}
+                {hasData ? `${tr.pwrRec}s` : '·'}
               </span>
             </div>
           );
@@ -825,7 +825,7 @@ function Evidence() {
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-e style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Stage 1 Evidence · controlled-variable thermal memory" title={<>2°C ambient delta<br /><span className="tos-grad-text">3.5× recovery</span> time difference.<br />n=8 trials, single-variable design.</>}
-            body="E004 v2 (complete 2026-06-11, 8 trials at three thermal-start conditions): 1800s pre-trial wait + uniform start temperature within each cohort. Cold-start cohort (37°C, n=2): 4.2s power recovery. Warm-start cohort (39°C, n=5): 14.7s ± 1.1s — 3.5× within-session. Coldest trial (35°C, n=1, separate session): 8.2s. Within-condition reproducibility T<55°C CV 1.8%, T<42°C CV 1.6% — publication-grade. Same hardware, same workload. The thermal memory effect F1 hypothesized is demonstrated with a designed experiment." />
+            body="E004 v2 (complete 2026-06-11, 8 trials at three thermal-start conditions): 1800s pre-trial wait + uniform start temperature within each cohort. Cold-start cohort (37°C, n=2): 4.2s power recovery. Warm-start cohort (39°C, n=5): 14.7s ± 1.1s, 3.5× within-session. Coldest trial (35°C, n=1, separate session): 8.2s. Within-condition reproducibility T<55°C CV 1.8%, T<42°C CV 1.6%, publication-grade. Same hardware, same workload. The thermal memory effect F1 hypothesized is demonstrated with a designed experiment." />
         </div>
         {/* Evidence grid: custom named areas */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto auto', gap: 16 }} className="tos-evidence-grid">
@@ -912,7 +912,7 @@ function ProductionProof() {
         <div data-p style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Production validation · 72× H100 SXM5 · June 2026"
             title={<>Blind-tested on a production<br />H100 cluster. <span className="tos-grad-text">It worked.</span></>}
-            body="Telemetry from a major US research university's H100 cluster, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 degraded units — including one at 72°C that no temperature threshold can catch, because dozens of healthy GPUs in the same fleet run hotter. Detection used only the temp/power/util metrics SLURM/jobstats already exports to Prometheus — runnable today on a job ID with theta report." />
+            body="Telemetry from a major US research university's H100 cluster, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 degraded units, including one at 72°C that no temperature threshold can catch, because dozens of healthy GPUs in the same fleet run hotter. Detection used only the temp/power/util metrics SLURM/jobstats already exports to Prometheus, and it runs today on a job ID with theta report." />
         </div>
 
         {/* stat row */}
@@ -942,7 +942,7 @@ function ProductionProof() {
             <Panel glass label="The case that proves the thesis">
               <div style={{ padding: '16px 18px' }}>
                 <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 14 }}>
-                  One unit ran at 72°C — within 1°C of healthy GPUs elsewhere in the fleet.
+                  One unit ran at 72°C, within 1°C of healthy GPUs elsewhere in the fleet.
                   Temperature-based monitoring is structurally blind to it. R_θ vs board-mates flagged it immediately:
                 </p>
                 <Codeblock lines={[
@@ -956,12 +956,12 @@ function ProductionProof() {
             </Panel>
           </div>
           <div data-p style={{ opacity: 0 }}>
-            <Panel glass label="Fault type from curve shape — before opening the chassis">
+            <Panel glass label="Fault type from curve shape, before opening the chassis">
               <div style={{ padding: '16px 18px' }}>
                 <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 14 }}>
-                  The three flagged units have three distinct R_θ signatures — constant offset
+                  The three flagged units have three distinct R_θ signatures: constant offset
                   (airflow fault), slope increase (TIM/contact fault), heavy-tailed noise
-                  (intermittent) — so the alert ships with a probable cause:
+                  (intermittent). So the alert ships with a probable cause:
                 </p>
                 <Codeblock lines={[
                   { p: '1', t: 'offset +22°C, slope normal → airflow/inlet', tone: 'critical' },
@@ -976,7 +976,7 @@ function ProductionProof() {
               <div style={{ padding: '16px 18px' }}>
                 <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 10 }}>
                   Per-GPU digital twin (calibrated on the measured data): the severe unit hits
-                  the 85°C slowdown at full TDP with inlet ≥28°C — <span style={{ color: T.text }}>inside the 5–30°C
+                  the 85°C slowdown at full TDP with inlet ≥28°C, <span style={{ color: T.text }}>inside the 5–30°C
                   facility spec</span>. In synchronous training the slowest GPU gates all 64:
                 </p>
                 <Codeblock lines={[
@@ -992,7 +992,7 @@ function ProductionProof() {
 
         <div data-p style={{ opacity: 0, marginTop: 18 }}>
           <p style={{ fontFamily: FM, fontSize: 10.5, lineHeight: 1.7, color: T.faint, maxWidth: 760 }}>
-            Honesty footnote: the 3 flags are blind predictions — confirmation against the operator's
+            Honesty footnote: the 3 flags are blind predictions. Confirmation against the operator's
             RMA records is pending. Cluster identity withheld pending operator approval. Cost figures are
             modeled (twin RMSE 3.9°C, R²=0.81), assumptions: $2/GPU-hr, 85°C slowdown onset, perf ∝ P^0.45.
           </p>
@@ -1029,7 +1029,7 @@ function FeaturesGrid() {
             <FeatureCard title="Drift detection, not thresholds" index="01">
               <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 16 }}>
                 <span style={{ fontFamily: FM, color: T.text }}>baseline_mean + k·σ</span>{' '}
-                sustained over a steady-state window. Flags cooling degradation relative to the GPU's own healthy baseline — no hard-coded absolutes that go stale by generation.
+                sustained over a steady-state window. Flags cooling degradation relative to the GPU's own healthy baseline, with no hard-coded absolutes that go stale by generation.
               </p>
               <DriftViz />
             </FeatureCard>
@@ -1080,9 +1080,9 @@ function FeaturesGrid() {
             </FeatureCard>
           </div>
           <div data-f className="tos-feat-oss" style={{ opacity: 0 }}>
-            <FeatureCard title="OSS agent — single node free" index="05" tone="healthy">
+            <FeatureCard title="OSS agent · single node free" index="05" tone="healthy">
               <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 14 }}>
-                <span style={{ fontFamily: FM, color: T.text }}>pip install runtheta</span> — 60 seconds to first R_θ reading.
+                <span style={{ fontFamily: FM, color: T.text }}>pip install runtheta</span>. 60 seconds to first R_θ reading.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {['Free · single node · live readout', 'Paid · per-job R_θ reports (SLURM/jobstats)', 'Paid · cross-node peer detection + alerts'].map((f, i) => (
@@ -1111,8 +1111,8 @@ function FeaturesGrid() {
 const PIPELINE_STAGES = [
   {
     n: '01', name: 'Collect', code: 'pynvml / DCGM · 5s',
-    desc: 'T_junction, power, util, P-state — NVIDIA & AMD, no kernel module.',
-    deep: 'A hardware-abstraction layer picks the backend at startup — pynvml/DCGM for NVIDIA, amdsmi for AMD — and streams one sample per GPU every 5 seconds on an async loop. A self-healing layer re-initializes a GPU handle after 3 consecutive read failures instead of dying, and per-GPU poll latency is tracked as an early hang signal. MIG and vGPU are detected at init, so R_θ is computed per physical die and never fabricated for a guest that can’t read power.',
+    desc: 'T_junction, power, util, P-state. NVIDIA and AMD, no kernel module.',
+    deep: 'A hardware-abstraction layer picks the backend at startup (pynvml/DCGM for NVIDIA, amdsmi for AMD) and streams one sample per GPU every 5 seconds on an async loop. A self-healing layer re-initializes a GPU handle after 3 consecutive read failures instead of dying, and per-GPU poll latency is tracked as an early hang signal. MIG and vGPU are detected at init, so R_θ is computed per physical die and never fabricated for a guest that can’t read power.',
     spec: [
       'HAL → NVMLCollector | ROCmCollector | demo',
       'RawSample { temp_junction, power_w, util_pct,',
@@ -1124,8 +1124,8 @@ const PIPELINE_STAGES = [
   },
   {
     n: '02', name: 'Compute R_θ', code: 'ΔT / P', glyph: true,
-    desc: 'Effective thermal resistance. Virtual ambient T_ref from the GPU’s own idle — no thermocouple.',
-    deep: 'R_θ is thermal resistance — how many degrees the die heats per watt it burns. The hard part is T_ref (inlet/ambient): there’s usually no sensor, so Theta derives a virtual ambient from the GPU’s own stable idle windows and locks it. The computation refuses to return nonsense — below 5 W or under 0.5 °C of ΔT it yields no value rather than a garbage ratio. R_θ is most T_ref-sensitive at idle (a 5 °C error swings it ~35%) and robust under load (~10%), so detection leans on under-load and peer-relative comparison, where T_ref cancels entirely.',
+    desc: 'Effective thermal resistance. Virtual ambient T_ref from the GPU’s own idle, so no thermocouple.',
+    deep: 'R_θ is thermal resistance: how many degrees the die heats per watt it burns. The hard part is T_ref (inlet/ambient): there’s usually no sensor, so Theta derives a virtual ambient from the GPU’s own stable idle windows and locks it. The computation refuses to return nonsense, and below 5 W or under 0.5 °C of ΔT it yields no value rather than a garbage ratio. R_θ is most T_ref-sensitive at idle (a 5 °C error swings it ~35%) and robust under load (~10%), so detection leans on under-load and peer-relative comparison, where T_ref cancels entirely.',
     spec: [
       'R_θ = (T_junction − T_ref) / P_GPU      [°C/W]',
       'T_ref = virtual ambient, locked from idle windows',
@@ -1136,8 +1136,8 @@ const PIPELINE_STAGES = [
   },
   {
     n: '03', name: 'Steady-state window', code: 'σ < 0.03 C/W',
-    desc: 'Classify only on stable windows — lifts accuracy 84% → 99.8%, kills transients.',
-    deep: 'R_θ only means something at thermal equilibrium — during a load ramp it’s transiently inflated and meaningless. So classification runs on a 15-second rolling window and only fires when that window is stable: standard deviation under 0.03 °C/W. On the Stage-1 Tesla T4 data this single gate took Naive Bayes accuracy from 84% to 99.8% and eliminated transient false positives — the cheapest, highest-leverage filter in the pipeline.',
+    desc: 'Classify only on stable windows. It lifts accuracy 84% → 99.8%, kills transients.',
+    deep: 'R_θ only means something at thermal equilibrium. During a load ramp it’s transiently inflated and meaningless. So classification runs on a 15-second rolling window and only fires when that window is stable: standard deviation under 0.03 °C/W. On the Stage-1 Tesla T4 data this single gate took Naive Bayes accuracy from 84% to 99.8% and eliminated transient false positives. It is the cheapest, highest-leverage filter in the pipeline.',
     spec: [
       'window = 15 s rolling, per GPU',
       'stable iff σ(R_θ) < 0.03 °C/W',
@@ -1148,7 +1148,7 @@ const PIPELINE_STAGES = [
   {
     n: '04', name: 'Classify', code: 'Decision Tree', states: true,
     desc: 'Four states: clean idle · under load · CUDA zombie · recovery.',
-    deep: 'A Decision Tree — chosen because its rules are human-readable and publishable, not a black box — maps a stable window to one of four states. Trained on 4,570 rows of Stage-1 T4 telemetry, it reaches 100% 5-fold cross-validation accuracy on steady-state samples. The thresholds are T4-specific; on other silicon `theta calibrate` measures the hardware’s own R_θ thresholds, so a healthy B200 (R_θ ≈ 0.27) isn’t misread as permanently idle against a T4’s 0.87 cut.',
+    deep: 'A Decision Tree (chosen because its rules are human-readable and publishable, not a black box) maps a stable window to one of four states. Trained on 4,570 rows of Stage-1 T4 telemetry, it reaches 100% 5-fold cross-validation accuracy on steady-state samples. The thresholds are T4-specific; on other silicon `theta calibrate` measures the hardware’s own R_θ thresholds, so a healthy B200 (R_θ ≈ 0.27) isn’t misread as permanently idle against a T4’s 0.87 cut.',
     spec: [
       'IF R_θ ≤ 0.87          → under_load',
       'IF R_θ > 0.87 ∧ P0     → zombie_recovery',
@@ -1160,8 +1160,8 @@ const PIPELINE_STAGES = [
   },
   {
     n: '05', name: 'Detect', code: 'temporal + peer',
-    desc: 'Drift vs the GPU’s own baseline, plus peer-relative vs node-mates — no warm-up.',
-    deep: 'Two complementary detectors. The temporal one compares each GPU to its OWN rolling healthy baseline and flags R_θ above mean + k·σ sustained over consecutive windows, with a robust Theil-Sen slope projecting an ETA to the threshold. Its blind spot — it needs warm-up and can’t see a unit degraded since startup — is closed by the peer-relative detector: cross-sectional, comparing each GPU to its matched-power node-mates via median/MAD robust-z, no warm-up. Across a fleet, two-way (node × ordinal) median polish first removes HGX baseboard-position structure. On real Princeton H100s this blind-flagged 3 degraded units — one invisible to any temperature threshold.',
+    desc: 'Drift vs the GPU’s own baseline, plus peer-relative vs node-mates, with no warm-up.',
+    deep: 'Two complementary detectors. The temporal one compares each GPU to its OWN rolling healthy baseline and flags R_θ above mean + k·σ sustained over consecutive windows, with a robust Theil-Sen slope projecting an ETA to the threshold. Its blind spot (it needs warm-up and can’t see a unit degraded since startup) is closed by the peer-relative detector: cross-sectional, comparing each GPU to its matched-power node-mates via median/MAD robust-z, no warm-up. Across a fleet, two-way (node × ordinal) median polish first removes HGX baseboard-position structure. On real Princeton H100s this blind-flagged 3 degraded units, one of them invisible to any temperature threshold.',
     spec: [
       'temporal: R_θ > μ + k·σ sustained',
       '  k_warn 2.0 · k_crit 3.5 · baseline ≥ 20 samples',
@@ -1173,20 +1173,20 @@ const PIPELINE_STAGES = [
   },
   {
     n: '06', name: 'Govern', code: 'trust layer',
-    desc: 'First-run warming + a false-positive circuit breaker — zero false alarms hour-one.',
-    deep: 'Before any inferential alert reaches a human it passes the governor — the layer that earns first-run trust. On a freshly-seen GPU, R_θ-derived alerts are HELD while the baseline establishes (“learning, not yet confident”); ground-truth hardware faults (ECC, Xid, throttle) bypass and fire immediately. An active critical inhibits lower-severity alerts on the same GPU. And a false-positive circuit breaker watches the per-GPU alert rate — exceed the budget and that’s evidence of miscalibration, so the agent goes quiet on that GPU and fires exactly ONE meta-alert recommending `theta calibrate`, instead of spraying wrong alarms. One false-alarm thread kills OSS adoption; this is the discipline that prevents it.',
+    desc: 'First-run warming + a false-positive circuit breaker. Zero false alarms hour-one.',
+    deep: 'Before any inferential alert reaches a human it passes the governor, the layer that earns first-run trust. On a freshly-seen GPU, R_θ-derived alerts are HELD while the baseline establishes (“learning, not yet confident”); ground-truth hardware faults (ECC, Xid, throttle) bypass and fire immediately. An active critical inhibits lower-severity alerts on the same GPU. And a false-positive circuit breaker watches the per-GPU alert rate. Exceed the budget and that’s evidence of miscalibration, so the agent goes quiet on that GPU and fires exactly ONE meta-alert recommending `theta calibrate`, instead of spraying wrong alarms. One false-alarm thread kills OSS adoption; this is the discipline that prevents it.',
     spec: [
       'warming: hold inferential alerts until baseline set',
       'inhibit: active critical suppresses sub-critical',
       'FP budget: > 12 inferential/hr/GPU → trip breaker',
       '  → suppress + 1 meta-alert "run theta calibrate"',
-      'ground-truth (ECC/Xid/throttle) bypass — always fire',
+      'ground-truth (ECC/Xid/throttle) bypass, always fire',
     ],
   },
   {
     n: '07', name: 'Surface', code: 'act on it',
     desc: 'Alerts (Slack · PagerDuty · Opsgenie), health conditions, Prometheus & OTLP.',
-    deep: 'What survives the governor fans out. Alerts route to stdout, Slack, a generic webhook, PagerDuty (Events API v2) and Opsgenie (Alert API) — with sliding-window dedup and stable keys, so a re-fire updates one incident instead of spawning new ones. Orthogonally, per-GPU health conditions (the node-problem-detector pattern) hand schedulers a single `schedulable` flag plus the reason and since-when. Every signal also exports to Prometheus and OpenTelemetry/OTLP, and an MCP server lets an operator’s LLM copilot ask “which GPUs are degrading, and why.”',
+    deep: 'What survives the governor fans out. Alerts route to stdout, Slack, a generic webhook, PagerDuty (Events API v2) and Opsgenie (Alert API), with sliding-window dedup and stable keys, so a re-fire updates one incident instead of spawning new ones. Orthogonally, per-GPU health conditions (the node-problem-detector pattern) hand schedulers a single `schedulable` flag plus the reason and since-when. Every signal also exports to Prometheus and OpenTelemetry/OTLP, and an MCP server lets an operator’s LLM copilot ask “which GPUs are degrading, and why.”',
     spec: [
       'alerts: stdout · Slack · webhook · PagerDuty · Opsgenie',
       '  sliding-window dedup + stable keys → one incident',
@@ -1231,7 +1231,7 @@ function AgentPipeline() {
         <div data-ap style={{ opacity: 0, marginBottom: 56 }}>
           <SectionHead eyebrow="Inside the engine"
             title={<>From raw telemetry to a<br /><span className="tos-grad-text">verdict</span>, every 5 seconds.</>}
-            body="No black box. R_θ is computed and audited through seven deterministic stages — each one publishable, each one a place the agent earns trust before it ever fires an alert." />
+            body="No black box. R_θ is computed and audited through seven deterministic stages, each one publishable, each one a place the agent earns trust before it ever fires an alert." />
         </div>
 
         {/* the flow line + traveling pulse (behind the stage row, desktop only) */}
@@ -1273,8 +1273,8 @@ function AgentPipeline() {
         {active !== null && (() => {
           const s = PIPELINE_STAGES[active];
           return (
-            <div key={active} className="tos-pipe-detail" role="region" aria-label={`${s.name} — detail`}>
-              <Panel glass label={`Stage ${s.n} · ${s.name} — exact mechanism`}>
+            <div key={active} className="tos-pipe-detail" role="region" aria-label={`${s.name} detail`}>
+              <Panel glass label={`Stage ${s.n} · ${s.name} · exact mechanism`}>
                 <div className="tos-pipe-detail-grid" style={{ padding: '20px 22px' }}>
                   <p style={{ fontFamily: FD, fontSize: 14, lineHeight: 1.72, color: T.muted, margin: 0 }}>{s.deep}</p>
                   <div style={{
@@ -1445,7 +1445,7 @@ function CompetitorTable() {
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-c style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="The Gap" title={<>NVIDIA ships three<br />telemetry products.<br />None compute R<sub>θ</sub>.</>}
-            body="DCGM, Mission Control, and NVIDIA's newest fleet agent all expose T and P as separate fields. The ratio — the signal — is absent from every incumbent." />
+            body="DCGM, Mission Control, and NVIDIA's newest fleet agent all expose T and P as separate fields. The ratio, the signal, is absent from every incumbent." />
         </div>
         <div data-c style={{ opacity: 0 }}>
           <Panel label="Capability matrix · 2026-06">
@@ -1595,7 +1595,7 @@ function Pricing() {
               <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 4, border: `1px solid ${T.border}`, background: T.s0 }}>
                 <div style={{ fontFamily: FM, fontSize: 9.5, color: T.healthy, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 4 }}>University &amp; AI Lab</div>
                 <div style={{ fontFamily: FM, fontSize: 10.5, color: T.muted, lineHeight: 1.6 }}>
-                  Academic deployments are free — always. If you're at a university AI lab or research institution,{' '}
+                  Academic deployments are free, always. If you're at a university AI lab or research institution,{' '}
                   <a href="mailto:asomisetty27@gmail.com?subject=Theta academic deployment" style={{ color: T.healthy, textDecoration: 'none' }}>reach out</a>{' '}
                   and we'll help you get running at no cost.
                 </div>
@@ -1660,7 +1660,7 @@ function Footer() {
         </div>
         <div style={{ borderTop: `1px solid #8A6F2E55`, marginTop: 44, paddingTop: 18, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>© 2026 Theta · MIT License</span>
-          <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>R_θ = ΔT / P — the one ratio nobody else ships.</span>
+          <span style={{ fontFamily: FM, fontSize: 10, color: T.faint }}>R_θ = ΔT / P. The one ratio nobody else ships.</span>
         </div>
       </div>
     </footer>
@@ -2033,7 +2033,7 @@ const DEMO_SCRIPT: TermLine[] = [
   { kind: 'wait', ms: 500 },
   { kind: 'out', text: '  ✓  Python 3.12.1', color: T.healthy },
   { kind: 'out', text: '  ✓  pynvml  ·  driver 535.183.06  ·  4 GPUs detected', color: T.healthy },
-  { kind: 'out', text: '  ✓  prometheus_client — metrics export available', color: T.healthy },
+  { kind: 'out', text: '  ✓  prometheus_client: metrics export available', color: T.healthy },
   { kind: 'wait', ms: 600 },
   { kind: 'out', text: '  ━━━━━━  step 2/6  GPU inventory', color: T.bp },
   { kind: 'out', text: '  GPU 0  Tesla T4    16 GB   42°C    11.4W   P8   ● online', color: T.muted },
@@ -2048,7 +2048,7 @@ const DEMO_SCRIPT: TermLine[] = [
   { kind: 'out', text: '  GPU 2  R_θ=1.541 C/W  ● zombie_recovery      conf=1.00', color: T.critical },
   { kind: 'out', text: '  GPU 3  R_θ=2.104 C/W  ● child_exit_recovery  conf=0.98', color: T.caution },
   { kind: 'wait', ms: 900 },
-  { kind: 'out', text: '  ! GPU 2 — CUDA context retained at 31W. Release stale context.', color: T.critical },
+  { kind: 'out', text: '  ! GPU 2: CUDA context retained at 31W. Release stale context.', color: T.critical },
   { kind: 'wait', ms: 2200 },
 ];
 
@@ -2143,7 +2143,7 @@ function TerminalDemo() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 72, alignItems: 'center' }} className="tos-two-col">
           <div>
             <SectionHead eyebrow="See it run" title={<>90 seconds from<br />pip install to first<br />R_θ reading.</>}
-              body={<>The setup wizard walks you through GPU detection, virtual ambient locking, and first classification — all from your terminal. Run <span style={{ fontFamily: FM, color: T.text }}>theta setup</span> after install.</>} />
+              body={<>The setup wizard walks you through GPU detection, virtual ambient locking, and first classification, all from your terminal. Run <span style={{ fontFamily: FM, color: T.text }}>theta setup</span> after install.</>} />
             <div style={{ marginTop: 28, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 4, border: `1px solid ${T.borderHi}`, background: T.s1, color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
@@ -2187,7 +2187,7 @@ function TerminalDemo() {
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#E1A446', border: '0.5px solid rgba(0,0,0,0.3)' }} />
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#56C156', border: '0.5px solid rgba(0,0,0,0.3)' }} />
               <span style={{ flex: 1, textAlign: 'center', fontFamily: FM, fontSize: 10.5, color: T.faint, letterSpacing: '.04em' }}>
-                amogh@thermalos · zsh — 84×26
+                amogh@thermalos · zsh · 84×26
               </span>
               <span style={{ fontFamily: FM, fontSize: 9.5, color: paused ? T.caution : T.healthy, letterSpacing: '.1em' }}>
                 {paused ? 'PAUSED' : '● REC'}
