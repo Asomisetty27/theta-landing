@@ -422,7 +422,7 @@ function Hero() {
         }}>
           <div data-h style={{ opacity: 0, marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <span className="tos-shimmer-wrap" style={{ display: 'inline-flex', borderRadius: 3 }}>
-              <Tag accent><Pulse />&nbsp;v0.1.9 live on PyPI</Tag>
+              <Tag accent><Pulse />&nbsp;v0.1.10 live on PyPI</Tag>
             </span>
             <Tag>MIT licensed · single-node free forever</Tag>
           </div>
@@ -912,7 +912,7 @@ function ProductionProof() {
         <div data-p style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Production validation · 72× H100 SXM5 · June 2026"
             title={<>Blind-tested on a production<br />H100 cluster. <span className="tos-grad-text">It worked.</span></>}
-            body="Telemetry from a major US research university's H100 cluster, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 degraded units — including one at 72°C that no temperature threshold can catch, because dozens of healthy GPUs in the same fleet run hotter. Detection used only the temp/power/util metrics Prometheus exporters already collect." />
+            body="Telemetry from a major US research university's H100 cluster, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 degraded units — including one at 72°C that no temperature threshold can catch, because dozens of healthy GPUs in the same fleet run hotter. Detection used only the temp/power/util metrics SLURM/jobstats already exports to Prometheus — runnable today on a job ID with theta report." />
         </div>
 
         {/* stat row */}
@@ -1054,7 +1054,7 @@ function FeaturesGrid() {
                 T_reference derived from the GPU's own idle windows. No thermocouples, no rack mods.
               </p>
               <Codeblock lines={[
-                { p: '>', t: 'thermalos baseline --gpu 0' },
+                { p: '>', t: 'theta baseline --gpu 0' },
                 { p: '·', t: 'T_ref locked @ 41.2°C σ=0.18' },
                 { p: '✓', t: 'no thermocouple required', tone: 'healthy' },
               ]} />
@@ -1085,7 +1085,7 @@ function FeaturesGrid() {
                 <span style={{ fontFamily: FM, color: T.text }}>pip install runtheta</span> — 60 seconds to first R_θ reading.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {['Free · single node · live readout', 'Paid · fleet dashboard + alerts', 'Paid · cross-node correlation'].map((f, i) => (
+                {['Free · single node · live readout', 'Paid · per-job R_θ reports (SLURM/jobstats)', 'Paid · cross-node peer detection + alerts'].map((f, i) => (
                   <div key={f} style={{ display: 'flex', gap: 8, alignItems: 'center', fontFamily: FM, fontSize: 10.5, color: T.muted }}>
                     <span style={{ color: i === 0 ? T.healthy : T.faint, fontSize: 9 }}>▶</span>
                     {f}
@@ -1185,7 +1185,9 @@ const CMP_ROWS: { cap: string; cells: Mark[] }[] = [
   { cap: 'Separates busy-hot vs failing-hot',  cells: ['no', 'no', 'no', 'no', 'yes'] },
   { cap: 'Drift detector (baseline + k·σ)',    cells: ['no', 'no', 'partial', 'no', 'yes'] },
   { cap: 'CUDA-context aware (zombie GPU)',     cells: ['no', 'no', 'no', 'no', 'yes'] },
-  { cap: 'Cross-vendor (NVIDIA + AMD)',         cells: ['no', 'no', 'partial', 'partial', 'yes'] },
+  { cap: 'Cross-vendor (NVIDIA live, AMD roadmap)', cells: ['no', 'no', 'partial', 'partial', 'partial'] },
+  { cap: 'Peer-relative fleet detection',       cells: ['no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Per-job R_θ report (SLURM/jobstats)', cells: ['no', 'no', 'no', 'no', 'yes'] },
   { cap: 'Virtual ambient (zero hardware)',     cells: ['no', 'no', 'no', 'no', 'yes'] },
   { cap: 'Serves neocloud / mixed fleets',     cells: ['yes', 'no', 'no', 'partial', 'yes'] },
   { cap: 'Open-source agent',                  cells: ['yes', 'no', 'no', 'no', 'yes'] },
@@ -1712,9 +1714,9 @@ const DEMO_SCRIPT: TermLine[] = [
   { kind: 'cmd', text: 'pip install runtheta' },
   { kind: 'wait', ms: 400 },
   { kind: 'out', text: 'Collecting runtheta', color: T.muted },
-  { kind: 'out', text: '  Downloading runtheta-0.2.1-py3-none-any.whl (52.3 kB)', color: T.faint },
+  { kind: 'out', text: '  Downloading runtheta-0.1.10-py3-none-any.whl (52.3 kB)', color: T.faint },
   { kind: 'out', text: '  Installing collected packages: runtheta', color: T.faint },
-  { kind: 'out', text: 'Successfully installed runtheta-0.2.1', color: T.healthy },
+  { kind: 'out', text: 'Successfully installed runtheta-0.1.10', color: T.healthy },
   { kind: 'wait', ms: 700 },
   { kind: 'cmd', text: 'theta setup' },
   { kind: 'wait', ms: 500 },
