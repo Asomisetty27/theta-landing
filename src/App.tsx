@@ -5,6 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RESEARCH_ORIGIN, THETA_BASE } from "./pages/thermalos/config.ts";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // runtheta.com is the CLIENT/PRODUCT surface only. All research surfaces
 // (ResearchLanding, FleetDashboard, the /thermalos/app workspace) live on
@@ -55,6 +57,10 @@ const App = () => (
           </Routes>
         </Suspense>
       </BrowserRouter>
+      {/* Privacy-friendly, cookieless analytics + real-user Core Web Vitals.
+          No-ops off Vercel; no consent banner required. */}
+      <Analytics />
+      <SpeedInsights />
     </TooltipProvider>
   </QueryClientProvider>
 );

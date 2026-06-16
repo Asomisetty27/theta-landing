@@ -901,7 +901,7 @@ function ProductionProof() {
       {/* isotherm flow field — behind the glass panels, edge-faded */}
       <div aria-hidden style={{
         position: 'absolute', inset: 0, zIndex: 1,
-        backgroundImage: "url('/textures/thermal-flow.png')",
+        backgroundImage: "url('/textures/thermal-flow.webp')",
         backgroundSize: 'cover', backgroundPosition: 'center',
         opacity: .6,
         maskImage: 'radial-gradient(ellipse 95% 85% at 50% 45%, black 50%, transparent 100%)',
@@ -1218,7 +1218,7 @@ function AgentPipeline() {
       <ShowroomLight intensity={0.7} />
       {/* Higgsfield-rendered pipeline plate — telemetry converging at the R_θ core */}
       <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <img src="/textures/agent-pipeline.png" alt="" loading="lazy"
+        <img src="/textures/agent-pipeline.webp" alt="" loading="lazy"
           style={{
             position: 'absolute', top: '7%', left: '50%', transform: 'translateX(-50%)',
             width: 'min(1180px, 92%)', opacity: 0.5,
@@ -1431,7 +1431,7 @@ function CompetitorTable() {
           seamlessly; the radial mask fades it into the section. */}
       <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
         <img
-          src="/textures/isotherm-field.png"
+          src="/textures/isotherm-field.webp"
           alt=""
           loading="lazy"
           style={{

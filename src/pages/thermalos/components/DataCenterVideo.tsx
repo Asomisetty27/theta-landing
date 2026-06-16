@@ -36,6 +36,7 @@ const T = {
 };
 const FM = "'JetBrains Mono', ui-monospace, monospace";
 
+const VIDEO_WEBM = '/media/datacenter-loop.webm';
 const VIDEO_SRC = '/media/datacenter-loop.mp4';
 const POSTER_SRC = '/media/datacenter-poster.jpg';
 
@@ -296,13 +297,16 @@ export default function DataCenterVideo({ hudScale = 1 }: { hudScale?: number })
         <img src={POSTER_SRC} alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
         <video
-          src={VIDEO_SRC}
           poster={POSTER_SRC}
           autoPlay muted loop playsInline
+          preload="metadata"
           aria-hidden
           onError={() => setFailed(true)}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-        />
+        >
+          <source src={VIDEO_WEBM} type="video/webm" />
+          <source src={VIDEO_SRC} type="video/mp4" />
+        </video>
       )}
       <DataCenterHUD phaseRef={phaseRef} valuesRef={valuesRef} scale={hudScale} />
       <DataCenterCaption />

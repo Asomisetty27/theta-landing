@@ -13,8 +13,8 @@ import * as THREE from 'three';
 import pcbNormalUrl from '@/assets/textures/pcb-normal.jpg';
 import nickelBrushedUrl from '@/assets/textures/nickel-brushed.jpg';
 import anodizedDarkUrl from '@/assets/textures/anodized-dark.jpg';
-import nvidiaDecalUrl from '@/assets/textures/nvidia-decal.png';
-import amdDecalUrl from '@/assets/textures/amd-decal.png';
+import nvidiaDecalUrl from '@/assets/textures/nvidia-decal.webp';
+import amdDecalUrl from '@/assets/textures/amd-decal.webp';
 
 import skinA100Url   from '@/assets/textures/skin-a100.jpg';
 import skinL40sUrl   from '@/assets/textures/skin-l40s.jpg';

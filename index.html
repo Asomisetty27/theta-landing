@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Early connections to the font CDNs (fonts are @imported in CSS, so the
+         browser discovers them late; preconnect shaves the handshake off LCP). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+    <link rel="canonical" href="https://runtheta.com/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -23,6 +30,25 @@
     <meta name="twitter:title" content="Theta: GPU Thermal Forensics">
     <meta name="twitter:description" content="R_θ = ΔT/P. A rising thermal resistance at steady power means your cooling path is degrading. Temperature alone cannot tell you this.">
     <meta name="twitter:image" content="https://runtheta.com/og-image.png" />
+
+    <!-- Structured data: helps "GPU thermal monitoring" discovery + rich results. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Theta",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Linux",
+      "description": "Open-source GPU thermal-forensics agent. Computes R_θ = ΔT/P in real time from DCGM/NVML telemetry to separate a busy-hot GPU from a failing-hot one.",
+      "url": "https://runtheta.com",
+      "downloadUrl": "https://pypi.org/project/runtheta/",
+      "softwareVersion": "0.1.10",
+      "license": "https://opensource.org/licenses/MIT",
+      "codeRepository": "https://github.com/Asomisetty27/theta",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Person", "name": "Amogh Somisetty" }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

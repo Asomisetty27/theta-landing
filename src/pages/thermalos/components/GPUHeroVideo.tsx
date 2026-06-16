@@ -27,6 +27,7 @@ import {
 const FM = "'JetBrains Mono', ui-monospace, monospace";
 const BG = '#0A0A0B'; // matches the scene's CINE.voidDeep
 
+const VIDEO_WEBM = '/media/hero-loop.webm';
 const VIDEO_SRC = '/media/hero-loop.mp4';
 const POSTER_SRC = '/media/hero-poster.jpg';
 
@@ -158,13 +159,17 @@ export default function GPUHeroVideo() {
         <img src={POSTER_SRC} alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
         <video
-          src={VIDEO_SRC}
           poster={POSTER_SRC}
           autoPlay muted loop playsInline
+          preload="auto"
           aria-hidden
           onError={() => setFailed(true)}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-        />
+        >
+          {/* VP9 WebM first (smaller, modern browsers), H.264 mp4 fallback (Safari) */}
+          <source src={VIDEO_WEBM} type="video/webm" />
+          <source src={VIDEO_SRC} type="video/mp4" />
+        </video>
       )}
       <PhaseHUD phaseRef={phaseRef} />
       <LineupLabel />

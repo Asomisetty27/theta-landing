@@ -1232,7 +1232,7 @@ function Runway({ textures }: { textures: Textures }) {
 // a texture and handed to Environment via `map`; `files` would invoke the HDR
 // loader and throw on .png).
 function StudioEnv() {
-  const tex = useTexture('/textures/studio-env.png');
+  const tex = useTexture('/textures/studio-env.webp');
   useMemo(() => { tex.mapping = THREE.EquirectangularReflectionMapping; tex.colorSpace = THREE.SRGBColorSpace; }, [tex]);
   return <Environment map={tex} resolution={512} environmentIntensity={0.9} />;
 }
