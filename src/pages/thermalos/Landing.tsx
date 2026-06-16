@@ -1670,7 +1670,7 @@ function Pricing() {
                 <div style={{ fontFamily: FM, fontSize: 9.5, color: T.healthy, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 4 }}>University &amp; AI Lab</div>
                 <div style={{ fontFamily: FM, fontSize: 10.5, color: T.muted, lineHeight: 1.6 }}>
                   Academic deployments are free, always. If you're at a university AI lab or research institution,{' '}
-                  <a href="mailto:asomisetty27@gmail.com?subject=Theta academic deployment" style={{ color: T.healthy, textDecoration: 'none' }}>reach out</a>{' '}
+                  <a href={RESEARCH_ORIGIN} target="_blank" rel="noreferrer" style={{ color: T.healthy, textDecoration: 'none' }}>reach out</a>{' '}
                   and we'll help you get running at no cost.
                 </div>
               </div>
