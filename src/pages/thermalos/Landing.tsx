@@ -525,6 +525,73 @@ const STATE_TABLE = [
   { state: 'child_exit_recovery', r: '2.04', sub: '±0.46',  pwr: '12.6W', util: '0%',  ps: '~P8', note: 'T_j lags power drop' },
 ];
 
+/* Interactive R_θ playground — make the thesis tangible: drag the dials, watch
+ * thermal resistance separate "hot because busy" from "hot because failing."
+ * Pure client-side; T_ref fixed at 25°C, compared to a representative healthy unit. */
+function RthetaPlayground() {
+  const [tj, setTj] = useState(54);
+  const [p, setP]  = useState(480);
+  const TREF = 25;
+  const rtheta = p > 0 ? (tj - TREF) / p : 0;
+  // Healthy R_θ is power-matched, not flat: it falls as power rises (the E009
+  // curve, ~0.10 C/W at 400 W down to ~0.07 at 650 W). Comparing at matched
+  // power is the whole point: that's why a flat threshold misses faults.
+  const healthyAtP = 2.6 * Math.pow(p, -0.6);
+  const dev = ((rtheta - healthyAtP) / healthyAtP) * 100;
+
+  let color = T.healthy, verdict = 'healthy', note = 'Thermal resistance is nominal for this load. Hot because busy, not because failing.';
+  if (dev > 45)      { color = T.critical; verdict = 'critical';  note = 'Throttle and failure territory. The cooling path, not the workload, is the problem.'; }
+  else if (dev > 22) { color = T.rising;   verdict = 'degrading'; note = 'R_θ sits well above a healthy unit at this power. The cooling path is degrading.'; }
+  else if (dev > 7)  { color = T.caution;  verdict = 'watch';     note = 'Slightly elevated versus a power-matched healthy peer. Watch the trend over time.'; }
+
+  // thermal-ramp fill position (0 = healthy, 1 = critical) for the bar
+  const fill = Math.max(0, Math.min(1, (dev + 20) / 80));
+
+  const Dial = ({ label, val, unit, min, max, step, set }: any) => (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
+        <span style={{ fontFamily: FM, fontSize: 10, color: T.muted, letterSpacing: '.06em', textTransform: 'uppercase' }}>{label}</span>
+        <span style={{ fontFamily: FM, fontSize: 14, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{val}<span style={{ color: T.faint, fontSize: 11 }}> {unit}</span></span>
+      </div>
+      <input type="range" className="tos-range" min={min} max={max} step={step} value={val} onChange={e => set(+e.target.value)} style={{ width: '100%' }} />
+    </div>
+  );
+
+  return (
+    <div data-r style={{ opacity: 0, marginTop: 22 }}>
+      <Panel glass label="Try it · drag the dials" corner={<Tag accent>interactive</Tag>}>
+        <div className="tos-play-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28, padding: '22px 22px' }}>
+          {/* dials */}
+          <div>
+            <Dial label="Junction temp" val={tj} unit="°C" min={35} max={95} step={1} set={setTj} />
+            <Dial label="GPU power" val={p} unit="W" min={60} max={700} step={5} set={setP} />
+            <div style={{ fontFamily: FM, fontSize: 10, color: T.faint, marginTop: 4 }}>
+              T_ref (virtual ambient) held at 25 °C · healthy peer at {p} W ≈ {healthyAtP.toFixed(3)} C/W
+            </div>
+          </div>
+          {/* readout */}
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12, borderLeft: `1px solid ${T.border}`, paddingLeft: 28 }}>
+            <div>
+              <div style={{ fontFamily: FM, fontSize: 9.5, color: T.faint, letterSpacing: '.12em', textTransform: 'uppercase' }}>R_θ = ({tj} − 25) / {p}</div>
+              <div style={{ fontFamily: FM, fontWeight: 600, fontSize: 40, lineHeight: 1, color, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>
+                {rtheta.toFixed(3)} <span style={{ fontSize: 16, color: T.faint }}>C/W</span>
+              </div>
+              <div style={{ fontFamily: FM, fontSize: 11, color, marginTop: 6 }}>
+                {dev >= 0 ? '+' : ''}{dev.toFixed(0)}% vs healthy · <span style={{ textTransform: 'uppercase', letterSpacing: '.08em' }}>{verdict}</span>
+              </div>
+            </div>
+            {/* thermal ramp bar */}
+            <div style={{ position: 'relative', height: 6, borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(90deg, #2FB36B22, #D4AF3733, #C8742A55, #B8303077)' }}>
+              <div style={{ position: 'absolute', top: -3, left: `calc(${(fill * 100).toFixed(1)}% - 1px)`, width: 2, height: 12, background: color, boxShadow: `0 0 8px ${color}` }} />
+            </div>
+            <p style={{ fontFamily: FD, fontSize: 12, lineHeight: 1.55, color: T.muted, margin: 0 }}>{note}</p>
+          </div>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
 function Signal() {
   const ref = useRef<HTMLElement | null>(null);
   const inView = useInView(ref, { once: true, amount: 0.2 });
@@ -622,6 +689,7 @@ function Signal() {
             </Panel>
           </div>
         </div>
+        <RthetaPlayground />
       </div>
     </section>
   );
@@ -1888,6 +1956,10 @@ html { scroll-behavior: smooth; }
 }
 @media (max-width: 560px) {
   .tos-pipe-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .tos-play-grid { grid-template-columns: 1fr !important; gap: 18px !important; }
+  .tos-play-grid > div:last-child { border-left: none !important; padding-left: 0 !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tos-pipe-pulse { display: none; }
