@@ -1659,7 +1659,7 @@ function Pricing() {
                   </div>
                 ))}
               </div>
-              <a href="mailto:asomisetty27@gmail.com?subject=Theta fleet tier"
+              <a href="mailto:somisett@calpoly.edu?subject=Theta fleet tier"
                 style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12, borderRadius: 4, background: 'linear-gradient(180deg, #F2D788 0%, #D4AF37 55%, #A8852B 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.25), 0 4px 18px rgba(212,175,55,.22)', color: '#1A1408', fontFamily: FD, fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'filter .15s' }}
                 onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.filter = 'brightness(1.08)')}
                 onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.filter = 'none')}>
@@ -1689,7 +1689,7 @@ function Footer() {
   const COLS = [
     { t: 'product',  ls: [{ l: 'overview', h: '#signal' }, { l: 'production validation', h: '#production' }, { l: 'github', h: 'https://github.com/Asomisetty27/theta' }, { l: 'live fleet demo', h: `${RESEARCH_ORIGIN}${FLEET_BASE}` }, { l: 'changelog', h: 'https://github.com/Asomisetty27/theta/releases' }] },
     { t: 'research', ls: [{ l: 'stage 1 findings', h: researchPath('findings') }, { l: 'R_θ metric', h: '#signal' }, { l: 'lead-time testbed', h: researchPath('lab') }, { l: 'publication', h: researchPath('publication') }] },
-    { t: 'company',  ls: [{ l: 'about', h: '#' }, { l: 'contact', h: 'mailto:asomisetty27@gmail.com' }, { l: 'privacy', h: '#' }, { l: 'MIT license', h: '#' }] },
+    { t: 'company',  ls: [{ l: 'about', h: '#' }, { l: 'contact', h: 'mailto:somisett@calpoly.edu' }, { l: 'privacy', h: '#' }, { l: 'MIT license', h: '#' }] },
   ];
   return (
     <footer style={{ borderTop: `1px solid ${T.border}`, background: T.s0, position: 'relative', overflow: 'hidden' }}>
