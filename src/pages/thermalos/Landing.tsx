@@ -547,15 +547,20 @@ function RthetaPlayground() {
   // thermal-ramp fill position (0 = healthy, 1 = critical) for the bar
   const fill = Math.max(0, Math.min(1, (dev + 20) / 80));
 
-  const Dial = ({ label, val, unit, min, max, step, set }: any) => (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
-        <span style={{ fontFamily: FM, fontSize: 10, color: T.muted, letterSpacing: '.06em', textTransform: 'uppercase' }}>{label}</span>
-        <span style={{ fontFamily: FM, fontSize: 14, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{val}<span style={{ color: T.faint, fontSize: 11 }}> {unit}</span></span>
+  const Dial = ({ label, val, unit, min, max, step, set }: any) => {
+    const fillPct = ((val - min) / (max - min)) * 100;
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+          <span style={{ fontFamily: FM, fontSize: 10, color: T.muted, letterSpacing: '.06em', textTransform: 'uppercase' }}>{label}</span>
+          <span style={{ fontFamily: FM, fontSize: 14, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{val}<span style={{ color: T.faint, fontSize: 11 }}> {unit}</span></span>
+        </div>
+        <input type="range" className="tos-range" min={min} max={max} step={step} value={val}
+          onChange={e => set(+e.target.value)}
+          style={{ width: '100%', ['--fill' as string]: `${fillPct}%` }} />
       </div>
-      <input type="range" className="tos-range" min={min} max={max} step={step} value={val} onChange={e => set(+e.target.value)} style={{ width: '100%' }} />
-    </div>
-  );
+    );
+  };
 
   return (
     <div data-r style={{ opacity: 0, marginTop: 22 }}>
@@ -711,16 +716,17 @@ const E004_TRIALS = [
   { t: 7, start: 48, loadR: 0.570, recR: 3.10,  pwrRec: 10.3, group: 'B' as const },
 ];
 
-/* v2 trials — 1800s wait protocol. All trials completed 2026-06-05.
+/* v2 trials — 1800s wait protocol.
  * T1+T2 at 37°C (cold-start cohort, fresh Colab session).
- * T3 disconnected mid-gate.
+ * T3 at 35°C (coldest start; thermal gate timed out at 1800s holding ~35°C,
+ *   separate session). Recorded clean: P-state→P8 at 3.0s, power recovery 8.2s.
  * T4-T8 at 39°C (warm-start cohort, neighbor-tenant warming).
- * The 2°C cohort delta produces a 3.5× recovery-time difference. */
+ * The 2°C cohort delta (T1/2 vs T4-8) produces a 3.5× recovery-time difference. */
 type V2Trial = { t: number; start: number; pwrRec: number | null; pstateRec: number | null; status?: 'disconnect' };
 const E004_V2_TRIALS: V2Trial[] = [
   { t: 1, start: 37, pwrRec: 3.2,  pstateRec: 3.0 },
   { t: 2, start: 37, pwrRec: 5.2,  pstateRec: 5.1 },
-  { t: 3, start: 41, pwrRec: null, pstateRec: null, status: 'disconnect' },
+  { t: 3, start: 35, pwrRec: 8.2,  pstateRec: 3.0 },
   { t: 4, start: 39, pwrRec: 15.4, pstateRec: 2.0 },
   { t: 5, start: 39, pwrRec: 16.3, pstateRec: 5.1 },
   { t: 6, start: 39, pwrRec: 14.3, pstateRec: 5.1 },
@@ -827,10 +833,10 @@ function V2PowerRecoveryChart() {
       {/* v2 row — complete dataset, two thermal-start cohorts */}
       <div>
         <div style={{ fontFamily: FM, fontSize: 10, color: T.healthy, marginBottom: 6 }}>
-          v2 · 1800s wait · 7 successful trials &nbsp;
+          v2 · 1800s wait · 8 trials &nbsp;
           <span style={{ color: T.healthy, fontSize: 9, letterSpacing: '.06em' }}>
             <span style={{ display: 'inline-block', width: 5, height: 5, background: T.healthy, borderRadius: '50%', marginRight: 4, verticalAlign: 'middle' }} />
-            complete · 2026-06-05
+            complete
           </span>
         </div>
         {E004_V2_TRIALS.map(tr => {
@@ -1630,7 +1636,7 @@ function Pricing() {
                 </div>
                 <input type="range" min={10} max={500} step={10} value={gpus} onChange={e => setGpus(+e.target.value)}
                   className="tos-range"
-                  style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', height: 2, background: `linear-gradient(to right,${T.healthy} ${((gpus - 10) / 490) * 100}%,${T.border} 0)`, borderRadius: 1, outline: 'none', cursor: 'pointer' }} />
+                  style={{ width: '100%', ['--fill' as string]: `${((gpus - 10) / 490) * 100}%` }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
                   <span style={{ fontFamily: FM, fontSize: 9, color: T.faint }}>10</span>
                   <span style={{ fontFamily: FM, fontSize: 9, color: T.faint }}>500+</span>
@@ -2024,9 +2030,32 @@ html { scroll-behavior: smooth; }
 .tos-scroll-up { animation: tos-scroll-up 22s linear infinite; will-change: transform; }
 .tos-scroll-up:hover { animation-play-state: paused; }
 
-/* Range thumb — no glow ring */
-.tos-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: ${T.healthy}; border: 2px solid ${T.s0}; cursor: pointer; }
-.tos-range::-moz-range-thumb { width: 14px; height: 14px; border: 2px solid ${T.s0}; border-radius: 50%; background: ${T.healthy}; cursor: pointer; }
+/* On-brand instrument dial: champagne fill on an obsidian groove, glowing thumb.
+   --fill (0–100%) is set inline from the value. */
+.tos-range {
+  -webkit-appearance: none; appearance: none;
+  height: 5px; border-radius: 3px; outline: none; cursor: pointer;
+  background: linear-gradient(to right,
+    #F5D98A 0%, #D4AF37 var(--fill, 50%),
+    #221E16 var(--fill, 50%), #221E16 100%);
+}
+.tos-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #F7E6B0, #D4AF37 70%);
+  border: 2px solid #0E0C12; margin-top: -5.5px; cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(212,175,55,.45), 0 0 10px rgba(212,175,55,.3);
+  transition: box-shadow .15s;
+}
+.tos-range::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
+  background: radial-gradient(circle at 38% 32%, #F7E6B0, #D4AF37 70%);
+  border: 2px solid #0E0C12;
+  box-shadow: 0 0 0 1px rgba(212,175,55,.45), 0 0 10px rgba(212,175,55,.3);
+}
+.tos-range::-moz-range-track { background: transparent; height: 5px; }
+.tos-range:hover::-webkit-slider-thumb,
+.tos-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 1px #F5D98A, 0 0 16px rgba(212,175,55,.55); }
+.tos-range:hover::-moz-range-thumb { box-shadow: 0 0 0 1px #F5D98A, 0 0 16px rgba(212,175,55,.55); }
 
 /* Features named-area grid */
 .tos-features-grid {
