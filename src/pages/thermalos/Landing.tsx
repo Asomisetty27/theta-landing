@@ -525,6 +525,26 @@ const STATE_TABLE = [
   { state: 'child_exit_recovery', r: '2.04', sub: '±0.46',  pwr: '12.6W', util: '0%',  ps: '~P8', note: 'T_j lags power drop' },
 ];
 
+/* One dial. MUST live at module scope, not inside RthetaPlayground — a component
+ * defined inside another is a new type every render, so React would remount the
+ * <input> on each drag tick and the drag would die mid-gesture. */
+function PlaygroundDial({ label, val, unit, min, max, step, set }: {
+  label: string; val: number; unit: string; min: number; max: number; step: number; set: (n: number) => void;
+}) {
+  const fillPct = ((val - min) / (max - min)) * 100;
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+        <span style={{ fontFamily: FM, fontSize: 10, color: T.muted, letterSpacing: '.06em', textTransform: 'uppercase' }}>{label}</span>
+        <span style={{ fontFamily: FM, fontSize: 14, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{val}<span style={{ color: T.faint, fontSize: 11 }}> {unit}</span></span>
+      </div>
+      <input type="range" className="tos-range" min={min} max={max} step={step} value={val}
+        onChange={e => set(+e.target.value)}
+        style={{ width: '100%', ['--fill' as string]: `${fillPct}%` }} />
+    </div>
+  );
+}
+
 /* Interactive R_θ playground — make the thesis tangible: drag the dials, watch
  * thermal resistance separate "hot because busy" from "hot because failing."
  * Pure client-side; T_ref fixed at 25°C, compared to a representative healthy unit. */
@@ -547,29 +567,14 @@ function RthetaPlayground() {
   // thermal-ramp fill position (0 = healthy, 1 = critical) for the bar
   const fill = Math.max(0, Math.min(1, (dev + 20) / 80));
 
-  const Dial = ({ label, val, unit, min, max, step, set }: any) => {
-    const fillPct = ((val - min) / (max - min)) * 100;
-    return (
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-          <span style={{ fontFamily: FM, fontSize: 10, color: T.muted, letterSpacing: '.06em', textTransform: 'uppercase' }}>{label}</span>
-          <span style={{ fontFamily: FM, fontSize: 14, color: T.text, fontVariantNumeric: 'tabular-nums' }}>{val}<span style={{ color: T.faint, fontSize: 11 }}> {unit}</span></span>
-        </div>
-        <input type="range" className="tos-range" min={min} max={max} step={step} value={val}
-          onChange={e => set(+e.target.value)}
-          style={{ width: '100%', ['--fill' as string]: `${fillPct}%` }} />
-      </div>
-    );
-  };
-
   return (
     <div data-r style={{ opacity: 0, marginTop: 22 }}>
       <Panel glass label="Try it · drag the dials" corner={<Tag accent>interactive</Tag>}>
         <div className="tos-play-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28, padding: '22px 22px' }}>
           {/* dials */}
           <div>
-            <Dial label="Junction temp" val={tj} unit="°C" min={35} max={95} step={1} set={setTj} />
-            <Dial label="GPU power" val={p} unit="W" min={60} max={700} step={5} set={setP} />
+            <PlaygroundDial label="Junction temp" val={tj} unit="°C" min={35} max={95} step={1} set={setTj} />
+            <PlaygroundDial label="GPU power" val={p} unit="W" min={60} max={700} step={5} set={setP} />
             <div style={{ fontFamily: FM, fontSize: 10, color: T.faint, marginTop: 4 }}>
               T_ref (virtual ambient) held at 25 °C · healthy peer at {p} W ≈ {healthyAtP.toFixed(3)} C/W
             </div>
