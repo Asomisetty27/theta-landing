@@ -299,7 +299,7 @@ function Nav() {
           <span style={{ fontFamily: FM, fontSize: 9.5, color: T.bp, border: `1px solid ${T.border}`, borderRadius: 3, padding: '2px 5px' }}>v0</span>
         </div>
         <div className="tos-nav-links" style={{ display: 'flex', gap: 26 }}>
-          {['signal', 'evidence', 'gap', 'pricing'].map(l => (
+          {['signal', 'engine', 'evidence', 'gap', 'pricing'].map(l => (
             <a key={l} href={`#${l}`} style={{ fontFamily: FM, fontSize: 10.5, letterSpacing: '.04em', color: T.muted, textDecoration: 'none', transition: 'color .15s' }}
               onMouseEnter={e => (e.currentTarget.style.color = T.text)}
               onMouseLeave={e => (e.currentTarget.style.color = T.muted)}>
@@ -1100,6 +1100,105 @@ function FeaturesGrid() {
   );
 }
 
+/* ─── Agent pipeline — "how it works" ─────────────────────────────────────────
+ *
+ * The seven real processing stages of the agent, every 5 s. Higgsfield-rendered
+ * pipeline plate as the atmospheric band; the stages stagger in on scroll and a
+ * champagne pulse travels the flow line beneath them. Copy is accurate to the
+ * shipped agent (collector → R_θ → steady-state window → classifier → detectors
+ * → governor → surfaces).
+ */
+const PIPELINE_STAGES = [
+  { n: '01', name: 'Collect',  code: 'pynvml / DCGM · 5s', desc: 'T_junction, power, util, P-state — NVIDIA & AMD, no kernel module.' },
+  { n: '02', name: 'Compute R_θ', code: 'ΔT / P', desc: 'Effective thermal resistance. Virtual ambient T_ref from the GPU’s own idle — no thermocouple.', glyph: true },
+  { n: '03', name: 'Steady-state window', code: 'σ < 0.03 C/W', desc: 'Classify only on stable windows — lifts accuracy 84% → 99.8%, kills transients.' },
+  { n: '04', name: 'Classify', code: 'Decision Tree', desc: 'Four states: clean idle · under load · CUDA zombie · recovery.', states: true },
+  { n: '05', name: 'Detect', code: 'temporal + peer', desc: 'Drift vs the GPU’s own baseline, plus peer-relative vs node-mates — no warm-up.' },
+  { n: '06', name: 'Govern', code: 'trust layer', desc: 'First-run warming + a false-positive circuit breaker — zero false alarms hour-one.' },
+  { n: '07', name: 'Surface', code: 'act on it', desc: 'Alerts (Slack · PagerDuty · Opsgenie), health conditions, Prometheus & OTLP.' },
+];
+
+function AgentPipeline() {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.12 });
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-ap]'), {
+      opacity: [0, 1], translateY: [14, 0], duration: 560,
+      delay: stagger(70), ease: 'outExpo',
+    });
+    const pulse = root.querySelector('[data-ap-pulse]');
+    if (pulse) animate(pulse, { offsetDistance: ['0%', '100%'], opacity: [0, 1, 1, 0], duration: 2600, delay: 500, ease: 'inOutSine', loop: true });
+  }, [inView]);
+
+  return (
+    <section ref={ref} id="engine" className="tos-section-glow-green" style={{ borderTop: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden' }}>
+      <ThetaDivider />
+      <ShowroomLight intensity={0.7} />
+      {/* Higgsfield-rendered pipeline plate — telemetry converging at the R_θ core */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <img src="/textures/agent-pipeline.png" alt="" loading="lazy"
+          style={{
+            position: 'absolute', top: '7%', left: '50%', transform: 'translateX(-50%)',
+            width: 'min(1180px, 92%)', opacity: 0.5,
+            maskImage: 'radial-gradient(ellipse 70% 80% at 50% 42%, #000 35%, transparent 78%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 70% 80% at 50% 42%, #000 35%, transparent 78%)',
+          }} />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
+        <div data-ap style={{ opacity: 0, marginBottom: 56 }}>
+          <SectionHead eyebrow="Inside the engine"
+            title={<>From raw telemetry to a<br /><span className="tos-grad-text">verdict</span>, every 5 seconds.</>}
+            body="No black box. R_θ is computed and audited through seven deterministic stages — each one publishable, each one a place the agent earns trust before it ever fires an alert." />
+        </div>
+
+        {/* the flow line + traveling pulse (behind the stage row, desktop only) */}
+        <div className="tos-pipe-flow" aria-hidden>
+          <span data-ap-pulse className="tos-pipe-pulse" />
+        </div>
+
+        <div className="tos-pipe-grid">
+          {PIPELINE_STAGES.map((s, i) => (
+            <div key={s.n} data-ap className="tos-pipe-stage" style={{ opacity: 0 }}>
+              <div className="tos-pipe-node">
+                {s.glyph ? <ThetaGlyph size={16} /> : <span style={{ fontFamily: FM, fontSize: 11, color: T.amber, letterSpacing: '.04em' }}>{s.n}</span>}
+              </div>
+              <div style={{ fontFamily: "'Clash Display','Satoshi',Inter,sans-serif", fontSize: 15, fontWeight: 600, color: T.text, letterSpacing: '-.02em', marginBottom: 4 }}>{s.name}</div>
+              <div style={{ fontFamily: FM, fontSize: 9, color: T.amber, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 9 }}>{s.code}</div>
+              <div style={{ fontFamily: FD, fontSize: 12, lineHeight: 1.55, color: T.muted }}>{s.desc}</div>
+              {s.states && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                  {[T.bp, T.healthy, T.critical, T.caution].map((c, j) => (
+                    <span key={j} style={{ width: 7, height: 7, borderRadius: '50%', background: c, boxShadow: `0 0 6px ${c}55` }} />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* engineering-facts strip */}
+        <div data-ap style={{ opacity: 0, marginTop: 40, display: 'flex', flexWrap: 'wrap', gap: 0, borderRadius: 6, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.s1 }}>
+          {[
+            { v: '< 1%', l: 'CPU overhead', s: 'no GPU contention' },
+            { v: '5 s', l: 'control loop', s: 'per-GPU, async' },
+            { v: '214', l: 'tests', s: 'every stage pinned' },
+            { v: 'MIT', l: 'licensed', s: 'single node free forever' },
+          ].map((k, i) => (
+            <div key={k.l} style={{ flex: '1 1 160px', padding: '16px 20px', borderLeft: i > 0 ? `1px solid ${T.border}` : 'none' }}>
+              <div style={{ fontFamily: FM, fontSize: 22, fontWeight: 600, letterSpacing: '-.02em', background: 'linear-gradient(135deg,#F0EADC,#D4AF37)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{k.v}</div>
+              <div style={{ fontFamily: FM, fontSize: 9.5, color: T.text, marginTop: 5, letterSpacing: '.06em', textTransform: 'uppercase' }}>{k.l}</div>
+              <div style={{ fontFamily: FM, fontSize: 9, color: T.faint, marginTop: 2 }}>{k.s}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FeatureCard({ title, index, tone, children }: {
   title: string;
   index: string;
@@ -1584,6 +1683,58 @@ html { scroll-behavior: smooth; }
 }
 
 /* ── Feature card hover glow ─────────────────────────────────────────────── */
+/* ── Agent pipeline ("how it works") ─────────────────────────────────────── */
+.tos-pipe-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+.tos-pipe-stage {
+  position: relative;
+  padding: 18px 14px 18px 0;
+  border-top: 1px solid rgba(212,175,55,.22);
+}
+.tos-pipe-stage::before {           /* the calibration tick at each stage start */
+  content: '';
+  position: absolute;
+  top: -1px; left: 0;
+  width: 22px; height: 2px;
+  background: linear-gradient(90deg, #F5D98A, #D4AF37);
+}
+.tos-pipe-node {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(212,175,55,.4);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, rgba(212,175,55,.12), transparent 70%), #0E0C12;
+  margin-bottom: 14px;
+}
+/* the flow line + traveling pulse, sitting just under the stage row top border */
+.tos-pipe-flow {
+  position: relative; z-index: 0;
+  height: 0; margin: 0 11px;
+}
+.tos-pipe-pulse {
+  position: absolute; top: 0; left: 0;
+  width: 64px; height: 1px;
+  background: linear-gradient(90deg, transparent, #F5D98A, transparent);
+  offset-path: path('M 0 0 H 1180');
+  offset-rotate: 0deg;
+  opacity: 0;
+}
+@media (max-width: 900px) {
+  .tos-pipe-grid { grid-template-columns: 1fr 1fr; }
+  .tos-pipe-flow { display: none; }
+}
+@media (max-width: 560px) {
+  .tos-pipe-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tos-pipe-pulse { display: none; }
+}
+
 .tos-feat-card {
   transition: border-color .2s, box-shadow .25s, transform .25s cubic-bezier(.22,.68,0,1);
 }
@@ -1953,6 +2104,7 @@ export default function ThermalOSLanding() {
       <ProductionProof />
       <Evidence />
       <FeaturesGrid />
+      <AgentPipeline />
       <React.Suspense fallback={null}>
         <DataCenterShowcase />
       </React.Suspense>
