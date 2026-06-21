@@ -1240,7 +1240,7 @@ const PIPELINE_STAGES = [
   {
     n: '05', name: 'Detect', code: 'temporal + peer',
     desc: 'Drift vs the GPU’s own baseline, plus peer-relative vs node-mates, with no warm-up.',
-    deep: 'Two complementary detectors. The temporal one compares each GPU to its OWN rolling healthy baseline and flags R_θ above mean + k·σ sustained over consecutive windows, with a robust Theil-Sen slope projecting an ETA to the threshold. Its blind spot (it needs warm-up and can’t see a unit degraded since startup) is closed by the peer-relative detector: cross-sectional, comparing each GPU to its matched-power node-mates via median/MAD robust-z, no warm-up. Across a fleet, two-way (node × ordinal) median polish first removes HGX baseboard-position structure. On real Princeton H100s this blind-flagged 3 degraded units, one of them invisible to any temperature threshold.',
+    deep: 'Two complementary detectors. The temporal one compares each GPU to its OWN rolling healthy baseline and flags R_θ above mean + k·σ sustained over consecutive windows, with a robust Theil-Sen slope projecting an ETA to the threshold. Its blind spot (it needs warm-up and can’t see a unit degraded since startup) is closed by the peer-relative detector: cross-sectional, comparing each GPU to its matched-power node-mates via median/MAD robust-z, no warm-up. Across a fleet, two-way (node × ordinal) median polish first removes HGX baseboard-position structure. On real production H100s at a major research-computing center this blind-flagged 3 degraded units, one of them invisible to any temperature threshold.',
     spec: [
       'temporal: R_θ > μ + k·σ sustained',
       '  k_warn 2.0 · k_crit 3.5 · baseline ≥ 20 samples',
@@ -1469,19 +1469,19 @@ function Codeblock({ lines }: { lines: Array<{ p: string; t: string; tone?: stri
 
 /* ─── Competitor table ────────────────────────────────────────────────────── */
 type Mark = 'yes' | 'no' | 'partial';
-const CMP_COLS = ['DCGM', 'Mission Control', 'Phaidra', 'In-house', 'Theta'];
+const CMP_COLS = ['DCGM', 'Mission Control', 'Fleet Intel', 'Phaidra', 'In-house', 'Theta'];
 const CMP_ROWS: { cap: string; cells: Mark[] }[] = [
-  { cap: 'Exposes T_junction + P_GPU',         cells: ['yes', 'yes', 'partial', 'partial', 'yes'] },
-  { cap: 'Computes R_θ (ΔT / P)',              cells: ['no', 'no', 'no', 'no', 'yes'] },
-  { cap: 'Separates busy-hot vs failing-hot',  cells: ['no', 'no', 'no', 'no', 'yes'] },
-  { cap: 'Drift detector (baseline + k·σ)',    cells: ['no', 'no', 'partial', 'no', 'yes'] },
-  { cap: 'CUDA-context aware (zombie GPU)',     cells: ['no', 'no', 'no', 'no', 'yes'] },
-  { cap: 'Cross-vendor (NVIDIA live, AMD roadmap)', cells: ['no', 'no', 'partial', 'partial', 'partial'] },
-  { cap: 'Peer-relative fleet detection',       cells: ['no', 'no', 'no', 'no', 'yes'] },
-  { cap: 'Per-job R_θ report (SLURM/jobstats)', cells: ['no', 'no', 'no', 'no', 'yes'] },
-  { cap: 'Virtual ambient (zero hardware)',     cells: ['no', 'no', 'no', 'no', 'yes'] },
-  { cap: 'Serves neocloud / mixed fleets',     cells: ['yes', 'no', 'no', 'partial', 'yes'] },
-  { cap: 'Open-source agent',                  cells: ['yes', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Exposes T_junction + P_GPU',         cells: ['yes', 'yes', 'yes', 'partial', 'partial', 'yes'] },
+  { cap: 'Computes R_θ (ΔT / P)',              cells: ['no', 'no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Separates busy-hot vs failing-hot',  cells: ['no', 'no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Drift detector (baseline + k·σ)',    cells: ['no', 'no', 'no', 'partial', 'no', 'yes'] },
+  { cap: 'CUDA-context aware (zombie GPU)',     cells: ['no', 'no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Cross-vendor (NVIDIA live, AMD roadmap)', cells: ['no', 'no', 'no', 'partial', 'partial', 'partial'] },
+  { cap: 'Peer-relative fleet detection',       cells: ['no', 'no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Per-job R_θ report (SLURM/jobstats)', cells: ['no', 'no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Virtual ambient (zero hardware)',     cells: ['no', 'no', 'no', 'no', 'no', 'yes'] },
+  { cap: 'Serves neocloud / mixed fleets',     cells: ['yes', 'no', 'partial', 'no', 'partial', 'yes'] },
+  { cap: 'Open-source agent',                  cells: ['yes', 'no', 'partial', 'no', 'no', 'yes'] },
 ];
 
 function MarkCell({ m, us }: { m: Mark; us: boolean }) {
@@ -1523,8 +1523,8 @@ function CompetitorTable() {
       </div>
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-c style={{ opacity: 0, marginBottom: 48 }}>
-          <SectionHead eyebrow="The Gap" title={<>NVIDIA ships three<br />telemetry products.<br />None compute R<sub>θ</sub>.</>}
-            body="DCGM, Mission Control, and NVIDIA's newest fleet agent all expose T and P as separate fields. The ratio, the signal, is absent from every incumbent." />
+          <SectionHead eyebrow="The Gap" title={<>NVIDIA ships four<br />telemetry products.<br />None compute R<sub>θ</sub>.</>}
+            body="DCGM, Mission Control, and the free, GA Fleet Intelligence all expose T and P as separate fields and alert on thresholds. None computes effective thermal resistance or compares a GPU to its node-mates. The signal is absent from every incumbent." />
         </div>
         <div data-c style={{ opacity: 0 }}>
           <Panel label="Capability matrix · 2026-06">

@@ -12,7 +12,7 @@ interface Task {
 const TASKS: Task[] = [
   { id: "tel",  label: "TELEMETRY SYSTEMS",  sublabel: "pynvml · DCGM · 8,734 rows", ms: 820, delay: 80  },
   { id: "vlt",  label: "EVIDENCE VAULT",     sublabel: "Stage 1 · F1-F6 validated",   ms: 950, delay: 160 },
-  { id: "dp",   label: "DATAPATH MODULE",    sublabel: "R_θ pipeline · v0.1.9",        ms: 720, delay: 0   },
+  { id: "dp",   label: "DATAPATH MODULE",    sublabel: "R_θ pipeline · v0.1.10",       ms: 720, delay: 0   },
   { id: "disp", label: "DISPLAY SUBSYS",     sublabel: "Space Grotesk · JetBrains",   ms: 640, delay: 240 },
 ];
 

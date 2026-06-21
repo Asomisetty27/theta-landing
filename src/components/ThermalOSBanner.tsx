@@ -41,7 +41,7 @@ export default function ThermalOSBanner() {
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#35C792]" style={{ boxShadow: "0 0 6px #35C792" }} />
               </span>
               <span className="text-[10px] font-mono uppercase tracking-wider text-[#9FE1CB]">
-                Stage 1 Complete · Ship v0.1.9
+                Stage 1 Complete · Ship v0.1.10
               </span>
             </span>
           </div>
@@ -55,7 +55,7 @@ export default function ThermalOSBanner() {
         </h2>
 
         <p className="font-mono text-[12px] text-[#9FE1CB]/80 mb-3">
-          Real-time R_θ = ΔT/P · failure prediction · SDC detection · DCGM + Redfish fusion · Targeting YC W27
+          Real-time R_θ = ΔT/P · peer-relative anomaly · SDC tracking · DCGM + Redfish fusion · raising pre-seed
         </p>
 
         <p className="text-sm text-secondary-foreground leading-relaxed mb-4">
@@ -84,7 +84,7 @@ export default function ThermalOSBanner() {
           {[
             { v: "3.5×", l: "recovery delta · 2°C ambient" },
             { v: "8,734", l: "Stage 1 telemetry rows" },
-            { v: "v0.1.9", l: "live on PyPI" },
+            { v: "v0.1.10", l: "live on PyPI" },
           ].map((s) => (
             <div key={s.l}
               className="rounded p-2 text-center relative overflow-hidden"
