@@ -55,13 +55,16 @@ export default function ThermalOSBanner() {
         </h2>
 
         <p className="font-mono text-[12px] text-[#9FE1CB]/80 mb-3">
-          Real-time R_θ = ΔT/P · peer-relative anomaly · SDC tracking · DCGM + Redfish fusion · raising pre-seed
+          Real-time R_θ = ΔT/P · peer-relative + position-conditioned detection · runs on jobstats / DCGM / Prometheus exports
         </p>
 
         <p className="text-sm text-secondary-foreground leading-relaxed mb-4">
-          Stage 1 (Tesla T4 / Colab, 8,734 telemetry rows) closed with controlled-variable evidence of GPU
-          thermal memory: <span className="text-[#9FE1CB] font-semibold">a 2°C ambient delta produces a 3.5× change in power-recovery time</span> (n=7, within-condition CV 1.8%).
-          Stage 2 deploys on Cal Poly's Noyce AI Factory DGX B200 cluster before fall semester.
+          Run blind on Princeton Della production H100 telemetry, Theta flagged{" "}
+          <span className="text-[#9FE1CB] font-semibold">3 degrading GPUs with zero false positives</span>,
+          including a unit that read normal on temperature until peer-relative R_θ exposed it. No new agent:
+          it runs on the telemetry a center already exports. Stage 1 (Tesla T4) established the physics, a 2°C
+          ambient delta drives a 3.5× change in power-recovery time (n=7, CV 1.8%); Stage 2 deploys on Cal
+          Poly's Noyce AI Factory DGX B200 cluster.
         </p>
 
         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -82,8 +85,8 @@ export default function ThermalOSBanner() {
 
         <div className="grid grid-cols-3 gap-2 mb-4">
           {[
-            { v: "3.5×", l: "recovery delta · 2°C ambient" },
-            { v: "8,734", l: "Stage 1 telemetry rows" },
+            { v: "3", l: "degrading GPUs flagged blind" },
+            { v: "0", l: "false positives · Princeton H100s" },
             { v: "v0.1.10", l: "live on PyPI" },
           ].map((s) => (
             <div key={s.l}
