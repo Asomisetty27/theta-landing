@@ -422,7 +422,7 @@ function Hero() {
         }}>
           <div data-h style={{ opacity: 0, marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <span className="tos-shimmer-wrap" style={{ display: 'inline-flex', borderRadius: 3 }}>
-              <Tag accent><Pulse />&nbsp;v0.1.10 live on PyPI</Tag>
+              <Tag accent><Pulse />&nbsp;v0.1.12 live on PyPI</Tag>
             </span>
             <Tag>MIT licensed · single-node free forever</Tag>
           </div>
