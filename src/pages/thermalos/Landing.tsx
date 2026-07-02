@@ -1069,10 +1069,24 @@ function ProductionProof() {
           </div>
         </div>
 
+        <div data-p style={{ opacity: 0, marginTop: 18, marginBottom: 18 }}>
+          <div className="tos-glass" style={{ borderRadius: 6, border: '1px solid rgba(80,200,120,.25)', padding: '16px 20px', maxWidth: 760 }}>
+            <p style={{ fontFamily: FM, fontSize: 11, lineHeight: 1.7, color: T.text }}>
+              <span style={{ color: '#7ee0a0', fontWeight: 600 }}>Independently re-confirmed, months later.</span>{' '}
+              The severe unit (z=+15.6) was flagged blind from a training-job snapshot. A separate diagnostic
+              run by the operator's own staff months afterward — different workload, different measurement
+              tooling, no knowledge of our flag — found the same physical GPU still the sole thermal outlier
+              on that node, running measurably hotter at identical power draw. Two independent observations,
+              same conclusion.
+            </p>
+          </div>
+        </div>
+
         <div data-p style={{ opacity: 0, marginTop: 18 }}>
           <p style={{ fontFamily: FM, fontSize: 10.5, lineHeight: 1.7, color: T.faint, maxWidth: 760 }}>
-            Honesty footnote: the 3 flags are blind predictions. Confirmation against the operator's
-            RMA records is pending. Cluster identity withheld pending operator approval. Cost figures are
+            Honesty footnote: the 3 flags are blind predictions. Formal confirmation against the operator's
+            RMA records is still pending for the two subtler units; the severe unit has independent field
+            re-confirmation (above). Cluster identity withheld pending operator approval. Cost figures are
             modeled (twin RMSE 3.9°C, R²=0.81), assumptions: $2/GPU-hr, 85°C slowdown onset, perf ∝ P^0.45.
           </p>
         </div>
