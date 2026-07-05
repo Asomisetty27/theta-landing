@@ -375,7 +375,7 @@ function InstallBlock() {
 const HERO_STATS = [
   { v: '3',        l: 'degraded H100s blind-flagged', s: 'production cluster · z up to +15.6' },
   { v: '5 min',    l: 'to detection',        s: '0 false positives · 61 healthy GPUs' },
-  { v: '100%',     l: 'classifier acc.',     s: 'Decision Tree + steady-state window' },
+  { v: '90 sec',   l: 'install to first reading', s: 'one command · no hardware · read-only' },
 ];
 
 function Hero() {
@@ -453,8 +453,8 @@ function Hero() {
             maxWidth: 420,
             marginBottom: 18,
           }}>
-            In every GPU cluster, some cards are slowly cooking themselves — and
-            on every standard dashboard they look identical to healthy ones.
+            In every GPU cluster, some cards are slowly cooking themselves. On
+            every standard dashboard they look identical to healthy ones.
             Theta reads the telemetry you already collect and names the failing
             card, with the probable cause, before it drags down the whole fleet.
           </p>
@@ -468,7 +468,7 @@ function Hero() {
             marginBottom: 18,
             marginTop: -8,
           }}>
-            THE SIGNAL&nbsp;&nbsp;R_θ = ΔT / P — thermal resistance, computed live from NVML/DCGM.
+            THE SIGNAL&nbsp;&nbsp;R_θ = ΔT / P. Thermal resistance, computed live from NVML/DCGM.
           </p>
           <div data-h style={{ opacity: 0, marginBottom: 14 }}>
             <span style={{
@@ -1003,7 +1003,7 @@ function ProductionProof() {
         <div data-p style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Production validation · 72× H100 SXM5 · June 2026"
             title={<>Blind-tested on a production<br />H100 cluster. <span className="tos-grad-text">It worked.</span></>}
-            body="Telemetry from a major US research university's H100 cluster, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 degraded units, including one at 72°C that no temperature threshold can catch, because dozens of healthy GPUs in the same fleet run hotter. Detection used only the temp/power/util metrics SLURM/jobstats already exports to Prometheus, and it runs today on a job ID with theta report." />
+            body="Telemetry from Princeton University's Della cluster, 72 H100s, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 degraded units, including one at 72°C that no temperature threshold can catch, because dozens of healthy GPUs in the same fleet run hotter. Detection used only the temp/power/util metrics SLURM/jobstats already exports to Prometheus, and it runs today on a job ID with theta report." />
         </div>
 
         {/* stat row */}
@@ -1086,8 +1086,8 @@ function ProductionProof() {
             <p style={{ fontFamily: FM, fontSize: 11, lineHeight: 1.7, color: T.text }}>
               <span style={{ color: '#7ee0a0', fontWeight: 600 }}>Independently re-confirmed, months later.</span>{' '}
               The severe unit (z=+15.6) was flagged blind from a training-job snapshot. A separate diagnostic
-              run by the operator's own staff months afterward — different workload, different measurement
-              tooling, no knowledge of our flag — found the same physical GPU still the sole thermal outlier
+              run by Princeton's own research computing staff months afterward, on a different workload with
+              different measurement tooling and no knowledge of our flag, found the same physical GPU still the sole thermal outlier
               on that node, running measurably hotter at identical power draw. Two independent observations,
               same conclusion.
             </p>
@@ -1098,9 +1098,13 @@ function ProductionProof() {
           <p style={{ fontFamily: FM, fontSize: 10.5, lineHeight: 1.7, color: T.faint, maxWidth: 760 }}>
             Honesty footnote: the 3 flags are blind predictions. Formal confirmation against the operator's
             RMA records is still pending for the two subtler units; the severe unit has independent field
-            re-confirmation (above). Cluster identity withheld pending operator approval. Cost figures are
+            re-confirmation (above). Cost figures are
             modeled (twin RMSE 3.9°C, R²=0.81), assumptions: $2/GPU-hr, 85°C slowdown onset, perf ∝ P^0.45.
           </p>
+          <a href={researchPath('findings')} target="_blank" rel="noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 14, fontFamily: FM, fontSize: 11, letterSpacing: '.04em', color: T.healthy, textDecoration: 'none' }}>
+            controlled experiments, findings F1–F16, and the full research log → amogh.site/thermalos <ChevronRight />
+          </a>
         </div>
       </div>
     </section>
@@ -2401,31 +2405,31 @@ function StorySection() {
   const inView = useInView(ref, { once: true, margin: '-60px' });
   const steps = [
     { n: '01', title: 'Install', body: <>One command on any machine that can see your GPUs: <span style={{ fontFamily: FM, color: T.text }}>pip install runtheta</span>. Ninety seconds later you have your first reading. Kubernetes fleet? One <span style={{ fontFamily: FM, color: T.text }}>helm install</span>.</> },
-    { n: '02', title: 'Watch', body: <>Theta computes every GPU's cooling health from the gauges your cluster already exports — no new hardware, no code changes, read-only. Each card is compared against its own history and its neighbors.</> },
-    { n: '03', title: 'Act', body: <>When one card's cooling starts failing, Theta names the unit and the probable cause — airflow, thermal paste, or intermittent contact — while it still looks "normal" to every temperature alarm.</> },
+    { n: '02', title: 'Watch', body: <>Theta computes every GPU's cooling health from the gauges your cluster already exports. No new hardware, no code changes, read-only. Each card is compared against its own history and its neighbors.</> },
+    { n: '03', title: 'Act', body: <>When one card's cooling starts failing, Theta names the unit and the probable cause (airflow, thermal paste, or intermittent contact) while it still looks "normal" to every temperature alarm.</> },
   ];
   return (
     <section ref={ref} id="story" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '110px 32px' }}>
         <motion.div initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }}>
           <SectionHead eyebrow="The problem, in plain terms"
-            title={<>Hot because it's busy —<br />or hot because it's dying?</>}
-            body={<>A GPU at 75&nbsp;°C is like a person with a high temperature after a run: maybe that's exercise, maybe that's a fever. The thermometer can't tell you which. Theta divides the heat by the work being done — watts in, degrees out — to get each GPU's true <em>cooling health</em>. A busy card and a dying card read the same temperature; they never read the same heat-per-watt.</>} />
+            title={<>Hot because it's busy,<br />or hot because it's dying?</>}
+            body={<>A GPU at 75&nbsp;°C is like a person with a high temperature after a run: maybe that's exercise, maybe that's a fever. The thermometer can't tell you which. Theta divides the heat by the work being done, watts in against degrees out, to get each GPU's true <em>cooling health</em>. A busy card and a dying card read the same temperature; they never read the same heat-per-watt.</>} />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.55, delay: 0.1 }}
           style={{ margin: '44px 0', borderRadius: 10, overflow: 'hidden', border: `1px solid ${T.border}` }}>
-          <img src="/generated/busy-vs-failing.webp" alt="Two identical GPUs radiating the same heat — thermal contour lines reveal one is merely busy while the other is failing"
+          <img src="/generated/busy-vs-failing.webp" alt="Two identical GPUs radiating the same heat. Thermal contour lines reveal one is merely busy while the other is failing"
             style={{ display: 'block', width: '100%', height: 'auto' }} loading="lazy" />
           <div style={{ padding: '10px 16px', fontFamily: FM, fontSize: 10, letterSpacing: '.05em', color: T.faint, borderTop: `1px solid ${T.border}`, background: T.s0 }}>
-            SAME HEAT · DIFFERENT STORY — THE CONTOURS ARE WHAT THETA SEES
+            SAME HEAT · DIFFERENT STORY · THE CONTOURS ARE WHAT THETA SEES
           </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.55, delay: 0.18 }}
           style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 44 }} className="tos-stat-grid">
           {[
-            { big: '$30–40k', small: 'what one datacenter GPU costs — and cooling faults kill them early' },
+            { big: '$30–40k', small: 'what one datacenter GPU costs. Cooling faults kill them early' },
             { big: '1 of 64', small: 'in synchronous AI training, the slowest GPU sets the pace for all of them' },
             { big: '$12.2k/mo', small: 'modeled waste from a single undetected degraded unit at 35 °C inlet' },
           ].map(c => (
@@ -2475,9 +2479,9 @@ function PersonaBand() {
             <div style={{ padding: '24px 24px 22px' }}>
               <div style={{ fontFamily: FD, fontSize: 17, fontWeight: 600, color: T.text, marginBottom: 8 }}>Get a pilot on your fleet.</div>
               <div style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.6, color: T.muted, marginBottom: 16 }}>
-                A read-only pilot against telemetry you already export: we hand back a
-                characterization report of your fleet — which units are degrading, why,
-                and what they're costing you. Blind-validated on 72 production H100s.
+                A read-only pilot against telemetry you already export. You get back a
+                characterization report of your fleet: which units are degrading, why,
+                and what they cost you. Blind-validated on 72 production H100s at Princeton.
               </div>
               <a href="mailto:asomisetty27@gmail.com?subject=Theta%20fleet%20pilot"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 4, background: 'linear-gradient(180deg, #F2D788 0%, #D4AF37 55%, #A8852B 100%)', color: '#1A1408', fontFamily: FD, fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
@@ -2495,13 +2499,13 @@ function PersonaBand() {
 function FaqSection() {
   const faqs: [string, React.ReactNode][] = [
     ["Doesn't NVIDIA already do this?",
-      <>NVIDIA's tooling (DCGM, Fleet Intelligence) exposes temperature and power as separate fields and alerts on raw thresholds. None of it computes thermal resistance or compares a GPU against its peers — verified at the source level. That peer-relative signal is exactly how Theta caught a degrading unit at 72&nbsp;°C that no temperature alarm can see.</>],
+      <>NVIDIA's tooling (DCGM, Fleet Intelligence) exposes temperature and power as separate fields and alerts on raw thresholds. None of it computes thermal resistance or compares a GPU against its peers. We verified that at the source level. That peer-relative signal is exactly how Theta caught a degrading unit at 72&nbsp;°C that no temperature alarm can see.</>],
     ["What does it need access to?",
-      <>Read-only GPU telemetry (NVML/DCGM) — the same gauges <span style={{ fontFamily: FM }}>nvidia-smi</span> reads. No code changes, no kernel modules, no job data. Nothing leaves your machines unless you point an exporter somewhere.</>],
+      <>Read-only GPU telemetry (NVML/DCGM), the same gauges <span style={{ fontFamily: FM }}>nvidia-smi</span> reads. No code changes, no kernel modules, no job data. Nothing leaves your machines unless you point an exporter somewhere.</>],
     ["What's the overhead?",
       <>A polling loop every few seconds against counters the driver already maintains. The systemd unit ships CPU-capped at 25% of one core and 512&nbsp;MB; the Kubernetes chart carries the same limits. The agent is built to never compete with your workloads.</>],
     ["Can it break my cluster?",
-      <>No. Theta observes and reports — it never throttles, drains, or reschedules anything. Acting on its findings stays a human (or policy-gated) decision. On Kubernetes it labels nodes; your scheduler decides what that means.</>],
+      <>No. Theta observes and reports. It never throttles, drains, or reschedules anything. Acting on its findings stays a human (or policy-gated) decision. On Kubernetes it labels nodes; your scheduler decides what that means.</>],
   ];
   return (
     <section id="faq" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
@@ -2533,7 +2537,6 @@ export default function ThermalOSLanding() {
       <TerminalDemo />
       <Signal />
       <ProductionProof />
-      <Evidence />
       <FeaturesGrid />
       <AgentPipeline />
       <React.Suspense fallback={null}>

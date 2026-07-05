@@ -13,22 +13,22 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <title>Theta: GPU Thermal Forensics · runtheta.com</title>
-    <meta name="description" content="Theta detects GPU cooling-path anomalies from telemetry alone. R_θ = ΔT/P. pip install runtheta">
+    <title>Theta: find the GPU that's quietly failing · runtheta.com</title>
+    <meta name="description" content="Some GPUs in every cluster are slowly cooking themselves, and they look identical to healthy ones on every dashboard. Theta reads the telemetry you already collect and names the failing card before it drags down the fleet. pip install runtheta">
     <meta name="author" content="Amogh Somisetty" />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://runtheta.com" />
-    <meta property="og:title" content="Theta: GPU Thermal Forensics">
-    <meta property="og:description" content="Cloud operators run thousands of GPUs without knowing when one is silently throttling. Theta detects cooling-path degradation from telemetry alone. pip install runtheta">
+    <meta property="og:title" content="Theta: find the GPU that's quietly failing">
+    <meta property="og:description" content="A hot GPU could be busy, or it could be dying. Theta tells them apart from telemetry you already collect. It blind-flagged 3 degraded H100s on a 72-GPU Princeton cluster. Free on one node: pip install runtheta">
     <meta property="og:image" content="https://runtheta.com/og-image.png" />
-    <meta property="og:image:width" content="2400" />
-    <meta property="og:image:height" content="1260" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Theta: GPU thermal forensics. R_θ = ΔT/P. pip install runtheta" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Theta: GPU Thermal Forensics">
-    <meta name="twitter:description" content="R_θ = ΔT/P. A rising thermal resistance at steady power means your cooling path is degrading. Temperature alone cannot tell you this.">
+    <meta name="twitter:title" content="Theta: find the GPU that's quietly failing">
+    <meta name="twitter:description" content="A hot GPU could be busy, or it could be dying. Theta tells them apart from the telemetry you already collect. Blind-validated on 72 Princeton H100s.">
     <meta name="twitter:image" content="https://runtheta.com/og-image.png" />
 
     <!-- Structured data: helps "GPU thermal monitoring" discovery + rich results. -->
@@ -42,7 +42,7 @@
       "description": "Open-source GPU thermal-forensics agent. Computes R_θ = ΔT/P in real time from DCGM/NVML telemetry to separate a busy-hot GPU from a failing-hot one.",
       "url": "https://runtheta.com",
       "downloadUrl": "https://pypi.org/project/runtheta/",
-      "softwareVersion": "0.1.10",
+      "softwareVersion": "0.1.12",
       "license": "https://opensource.org/licenses/MIT",
       "codeRepository": "https://github.com/Asomisetty27/theta",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
