@@ -1129,7 +1129,7 @@ function FeaturesGrid() {
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-f style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Capabilities" title={<>Built for fleets<br />NVIDIA won&apos;t serve.</>}
-            body="Mission Control ships only on Blackwell DGX/GB200 systems. The long tail of mixed-vendor, older-gen neocloud fleets is structurally out of reach. That's the lane." />
+            body={<>Mission Control ships only on Blackwell DGX/GB200 systems. The long tail of mixed-vendor, older-gen neocloud fleets is structurally out of reach. That's the lane. Collectors for NVIDIA (NVML) and AMD Instinct (amdsmi) ship today, with hardware profiles from MI250X through MI355X. R_θ is validated on real telemetry across four NVIDIA generations: T4, V100, A100, H100. No public per-GPU AMD telemetry exists anywhere (we checked, exhaustively), which means the first AMD fleet we instrument anchors the first public cross-vendor validation. <a href="mailto:asomisetty27@gmail.com?subject=Theta%20AMD%20fleet%20pilot" style={{ color: T.healthy, textDecoration: 'none' }}>Run Instinct? That could be you.</a></>} />
         </div>
         {/* 12-column named-area bento */}
         <div className="tos-features-grid" style={{ display: 'grid', gap: 12 }}>
@@ -2116,7 +2116,10 @@ html { scroll-behavior: smooth; }
 /* Responsive */
 /* Grid children default to min-width:auto — a wide table inside a 1fr column
    forces the column past the viewport (the mobile signal-table blowout). */
-.tos-two-col > *, .tos-evidence-grid > *, .tos-features-grid > * { min-width: 0; }
+.tos-two-col > *, .tos-evidence-grid > *, .tos-features-grid > *, .tos-stat-grid > * { min-width: 0; }
+@media (max-width: 900px) {
+  .tos-stat-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+}
 @media (max-width: 960px) {
   .tos-hero-layout { grid-template-columns: 1fr !important; gap: 48px !important; }
   .tos-two-col { grid-template-columns: 1fr !important; gap: 48px !important; }
