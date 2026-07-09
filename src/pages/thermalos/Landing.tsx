@@ -1724,7 +1724,7 @@ function Footer() {
   const COLS = [
     { t: 'product',  ls: [{ l: 'overview', h: '#signal' }, { l: 'production validation', h: '#production' }, { l: 'github', h: 'https://github.com/Asomisetty27/theta' }, { l: 'live fleet demo', h: `${RESEARCH_ORIGIN}${FLEET_BASE}` }, { l: 'changelog', h: 'https://github.com/Asomisetty27/theta/releases' }] },
     { t: 'research', ls: [{ l: 'stage 1 findings', h: researchPath('findings') }, { l: 'R_θ metric', h: '#signal' }, { l: 'lead-time testbed', h: researchPath('lab') }, { l: 'publication', h: researchPath('publication') }] },
-    { t: 'company',  ls: [{ l: 'about', h: '#' }, { l: 'contact', h: 'mailto:somisett@calpoly.edu' }, { l: 'privacy', h: '#' }, { l: 'MIT license', h: '#' }] },
+    { t: 'company',  ls: [{ l: 'about the builder', h: 'https://amogh.site' }, { l: 'research program', h: `${RESEARCH_ORIGIN}/thermalos` }, { l: 'contact', h: 'mailto:somisett@calpoly.edu' }, { l: 'MIT license', h: 'https://github.com/Asomisetty27/theta/blob/main/LICENSE' }] },
   ];
   return (
     <footer style={{ borderTop: `1px solid ${T.border}`, background: T.s0, position: 'relative', overflow: 'hidden' }}>
@@ -1735,7 +1735,7 @@ function Footer() {
             <div style={{ marginBottom: 10 }}>
               <ThetaLogo size={20} variant="full" color={T.healthy} />
             </div>
-            <p style={{ fontFamily: FM, fontSize: 10.5, color: T.faint, lineHeight: 1.7, marginBottom: 18 }}>GPU thermal-power forensics.<br />Built at Cal Poly · MIT License.</p>
+            <p style={{ fontFamily: FM, fontSize: 10.5, color: T.faint, lineHeight: 1.7, marginBottom: 18 }}>GPU thermal-power forensics.<br />Built by <a href="https://amogh.site" target="_blank" rel="noreferrer" style={{ color: T.muted, textDecoration: 'underline', textUnderlineOffset: 3 }}>Amogh Somisetty</a> at Cal Poly · MIT License.</p>
             <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', border: `1px solid ${T.border}`, borderRadius: 4, overflow: 'hidden', maxWidth: 260 }}>
               <input type="email" placeholder="stay updated" style={{ flex: 1, background: 'transparent', border: 'none', padding: '7px 10px', color: T.text, fontFamily: FM, fontSize: 10, outline: 'none' }} />
               <button type="submit" style={{ padding: '7px 10px', background: T.s2, border: 'none', borderLeft: `1px solid ${T.border}`, color: T.muted, fontFamily: FM, fontSize: 10, cursor: 'pointer', transition: 'color .15s' }}
