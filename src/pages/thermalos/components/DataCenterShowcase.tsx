@@ -64,7 +64,7 @@ export default function DataCenterShowcase() {
           </h2>
           <p style={{ marginTop: 14, color: T.muted, fontSize: 15, lineHeight: 1.6 }}>
             The same R<sub>θ</sub> signal from the Tesla T4 demo above, scaled to a real
-            data-center floor — Theta tracking every node, catching a thermal drift with
+            data-center floor: Theta tracking every node, catching a thermal drift with
             enough lead time to act before throttling ever shows up in util or power.
           </p>
         </div>
