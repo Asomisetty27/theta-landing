@@ -59,7 +59,7 @@ export default function ThermalOSBanner() {
         </p>
 
         <p className="text-sm text-secondary-foreground leading-relaxed mb-4">
-          Run blind on Princeton Della production H100 telemetry, Theta flagged{" "}
+          Run blind on a major US research center's production H100 telemetry, Theta flagged{" "}
           <span className="text-[#9FE1CB] font-semibold">3 degrading GPUs with zero false positives</span>,
           including a unit that read normal on temperature until peer-relative R_θ exposed it. No new agent:
           it runs on the telemetry a center already exports. Stage 1 (Tesla T4) established the physics, a 2°C
@@ -86,7 +86,7 @@ export default function ThermalOSBanner() {
         <div className="grid grid-cols-3 gap-2 mb-4">
           {[
             { v: "3", l: "degrading GPUs flagged blind" },
-            { v: "0", l: "false positives · Princeton H100s" },
+            { v: "0", l: "false positives · production H100s" },
             { v: "v0.1.10", l: "live on PyPI" },
           ].map((s) => (
             <div key={s.l}

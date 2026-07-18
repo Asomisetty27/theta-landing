@@ -466,7 +466,7 @@ function Hero() {
               border: `1px solid ${T.healthy}30`,
               background: `${T.healthy}08`,
             }}>
-              ● Production-validated · 72× H100 · blind-flagged 3 degraded units
+              ● Production-validated · 64× H100 · blind-flagged 3 degraded units
             </span>
           </div>
           <div data-h style={{ opacity: 0, marginBottom: 12 }}>
@@ -961,7 +961,7 @@ function Evidence() {
   );
 }
 
-/* ─── Production validation (E009 · 72× H100, anonymized pending operator OK) ── */
+/* ─── Production validation (E009 · 64× H100, anonymized pending operator OK) ── */
 function ProductionProof() {
   const ref = useRef<HTMLElement | null>(null);
   const inView = useInView(ref, { once: true, amount: 0.15 });
@@ -989,7 +989,7 @@ function ProductionProof() {
       }} />
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-p style={{ opacity: 0, marginBottom: 48 }}>
-          <SectionHead eyebrow="Production validation · 72× H100 SXM5 · June 2026"
+          <SectionHead eyebrow="Production validation · 64× H100 SXM5 · June 2026"
             title={<>Blind-tested on a production<br />H100 cluster. <span className="tos-grad-text">It worked.</span></>}
             body="Telemetry from a major US research university's H100 cluster, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 degraded units, including one at 72°C that no temperature threshold can catch, because dozens of healthy GPUs in the same fleet run hotter. Detection used only the temp/power/util metrics SLURM/jobstats already exports to Prometheus, and it runs today on a job ID with theta report." />
         </div>
@@ -1003,7 +1003,7 @@ function ProductionProof() {
                 { v: '5 min',  l: 'to detection',         s: 'of steady load · severe unit at z=+17' },
                 { v: '0',      l: 'false positives',      s: '61 healthy GPUs · 36-config sweep' },
                 { v: '−3%',    l: 'sim vs silicon',       s: 'predicted H100 R_θ confirmed at matched load' },
-                { v: '72°C',   l: 'the invisible fault',  s: '+16% R_θ vs peers · no temp alert fires' },
+                { v: '72°C',   l: 'the invisible fault',  s: '+16% R_θ vs peers · no temp alert · later replaced under RMA' },
               ].map((k, i) => (
                 <div key={k.l} style={{ padding: '18px 20px', borderLeft: i > 0 ? `1px solid rgba(255,255,255,.05)` : 'none' }}>
                   <div style={{ fontFamily: FD, fontSize: 30, fontWeight: 600, letterSpacing: '-.03em', fontVariantNumeric: 'tabular-nums', background: 'linear-gradient(135deg, #e8e8f0 0%, #D4AF37 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{k.v}</div>
@@ -1022,13 +1022,15 @@ function ProductionProof() {
               <div style={{ padding: '16px 18px' }}>
                 <p style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted, marginBottom: 14 }}>
                   One unit ran at 72°C, within 1°C of healthy GPUs elsewhere in the fleet.
-                  Temperature-based monitoring is structurally blind to it. R_θ vs board-mates flagged it immediately:
+                  Temperature-based monitoring is structurally blind to it. R_θ vs board-mates flagged it immediately.
+                  The operator later replaced this GPU under RMA, confirming it faulty from a maintenance record:
                 </p>
                 <Codeblock lines={[
                   { p: '!', t: 'GPU 6 · cooling degradation', tone: 'caution' },
                   { p: '·', t: 'T=72°C · looks healthy fleet-wide' },
                   { p: '·', t: 'R_θ +16% vs node peers · z=+4.4' },
                   { p: '·', t: 'power draw NORMAL → cooling, not silicon' },
+                  { p: '·', t: 'later REPLACED under RMA · confirmed faulty', tone: 'healthy' },
                   { p: '→', t: 'inspect airflow / TIM before throttle', tone: 'healthy' },
                 ]} />
               </div>
@@ -1074,20 +1076,21 @@ function ProductionProof() {
             <p style={{ fontFamily: FM, fontSize: 11, lineHeight: 1.7, color: T.text }}>
               <span style={{ color: '#7ee0a0', fontWeight: 600 }}>Independently re-confirmed, months later.</span>{' '}
               The severe unit (z=+15.6) was flagged blind from a training-job snapshot. A separate diagnostic
-              run by the operator's own staff months afterward — different workload, different measurement
-              tooling, no knowledge of our flag — found the same physical GPU still the sole thermal outlier
-              on that node, running measurably hotter at identical power draw. Two independent observations,
-              same conclusion.
+              run by the operator's own staff months afterward - different workload, different measurement
+              tooling, no knowledge of our flag - re-measured the same physical GPU at +47.8% R_θ vs peers
+              at matched power (real ambient, pre-throttle), still the sole thermal outlier on that node.
+              Two independent observations, same conclusion.
             </p>
           </div>
         </div>
 
         <div data-p style={{ opacity: 0, marginTop: 18 }}>
           <p style={{ fontFamily: FM, fontSize: 10.5, lineHeight: 1.7, color: T.faint, maxWidth: 760 }}>
-            Honesty footnote: the 3 flags are blind predictions. Formal confirmation against the operator's
-            RMA records is still pending for the two subtler units; the severe unit has independent field
-            re-confirmation (above). Cluster identity withheld pending operator approval. Cost figures are
-            modeled (twin RMSE 3.9°C, R²=0.81), assumptions: $2/GPU-hr, 85°C slowdown onset, perf ∝ P^0.45.
+            Honesty footnote: the 3 flags are blind predictions, and 2 are now independently confirmed. The
+            severe unit has independent field re-confirmation (above); the 72°C unit was subsequently replaced
+            under RMA per the operator's own maintenance records. Only the third, marginal flag remains
+            unconfirmed. Cluster identity withheld pending operator approval. Cost figures are modeled
+            (twin RMSE 3.9°C, R²=0.81), assumptions: $2/GPU-hr, 85°C slowdown onset, perf ∝ P^0.45.
           </p>
         </div>
       </div>
