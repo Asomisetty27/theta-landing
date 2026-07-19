@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Amogh Somisetty — Resume</title>
+<style>
+  @page { size: letter; margin: 0.45in 0.5in; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Georgia", "Times New Roman", serif;
+    color: #1a1a1a;
+    font-size: 9.5pt;
+    line-height: 1.23;
+  }
+  .sans { font-family: "Helvetica Neue", "Arial", sans-serif; }
+
+  /* Header */
+  header { text-align: center; margin-bottom: 8px; }
+  h1 {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 20pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #0a2540;
+    text-transform: uppercase;
+  }
+  .contact {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 8.7pt;
+    color: #333;
+    margin-top: 4px;
+  }
+  .contact a { color: #0a2540; text-decoration: none; }
+  .sep { color: #9aa5b1; margin: 0 5px; }
+
+  /* Section headings */
+  h2 {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 9.5pt;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: #0a2540;
+    border-bottom: 1.5px solid #0a2540;
+    padding-bottom: 2px;
+    margin: 6px 0 3.5px;
+  }
+
+  p.summary { margin-bottom: 2px; text-align: justify; }
+
+  /* Education / experience rows */
+  .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .row .left { font-weight: 700; }
+  .row .right {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 8.7pt; color: #333; white-space: nowrap;
+  }
+  .subrow { display: flex; justify-content: space-between; align-items: baseline; font-style: italic; color: #333; }
+  .coursework { font-size: 9pt; margin-top: 2px; }
+  .coursework b { font-style: normal; }
+
+  ul { list-style: none; margin: 2px 0 3px; }
+  li { position: relative; padding-left: 12px; margin-bottom: 1px; text-align: justify; }
+  li::before { content: "▪"; position: absolute; left: 0; color: #0a2540; font-size: 7pt; top: 1.5px; }
+
+  .skills li { margin-bottom: 2px; }
+  .skills b { color: #0a2540; }
+
+  /* Project titles */
+  .proj-title {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-weight: 700; font-size: 9.5pt; color: #14213d;
+    margin-top: 3px;
+  }
+  .proj-title .tag { font-weight: 400; font-size: 8.4pt; color: #55607a; }
+  .proj-title:first-of-type { margin-top: 2px; }
+
+  .tight { margin-top: 2px; }
+</style>
+</head>
+<body>
+
+  <header>
+    <h1>Amogh Somisetty</h1>
+    <div class="contact">
+      San Luis Obispo, CA
+      <span class="sep">|</span> (925) 236-2600
+      <span class="sep">|</span> <a href="mailto:somisett@calpoly.edu">somisett@calpoly.edu</a>
+      <span class="sep">|</span> <a href="https://github.com/Asomisetty27">github.com/Asomisetty27</a>
+      <span class="sep">|</span> <a href="https://amogh.site">amogh.site</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>Summary</h2>
+    <p class="summary">Electrical Engineering student focused on digital design and design verification. Designed a multi-cycle <b>RISC-V (RV32I) CPU in SystemVerilog</b> and synthesized, placed-and-routed, and verified it on a Basys-3 FPGA through the Xilinx Vivado (Tcl-driven) flow. Strong RTL and FSM fundamentals paired with hands-on debug &mdash; resolved 6+ documented failure modes via systematic root-cause analysis. Automates EDA flows with Tcl, Python, and shell scripting.</p>
+  </section>
+
+  <section>
+    <h2>Education</h2>
+    <div class="row">
+      <span class="left">California Polytechnic State University, San Luis Obispo</span>
+      <span class="right">San Luis Obispo, CA</span>
+    </div>
+    <div class="subrow">
+      <span>B.S. Electrical Engineering</span>
+      <span class="right"><i>Expected June 2028 &middot; Junior standing, Fall 2026</i></span>
+    </div>
+    <div class="coursework"><b>Relevant coursework:</b> Computer Design &amp; RISC-V Architecture (CPE&nbsp;233), Digital Design (CPE&nbsp;133), Electronics &amp; Analog Circuits (EE&nbsp;241), Circuit Analysis &amp; Instrumentation (EE&nbsp;143), Manufacturing Processes (IME&nbsp;144), Materials Engineering (MATE&nbsp;210/215)</div>
+  </section>
+
+  <section>
+    <h2>Technical Skills</h2>
+    <ul class="skills">
+      <li><b>HDL &amp; Digital Design:</b> SystemVerilog, RTL design, finite-state machines (Moore/Mealy), RISC-V RV32I ISA, datapath &amp; control-unit design, combinational/sequential logic, timing analysis</li>
+      <li><b>Design Verification &amp; Debug:</b> testbench simulation, waveform debugging, functional validation against ISA/spec, root-cause analysis, failure-mode documentation, test-plan mindset</li>
+      <li><b>EDA &amp; Tools:</b> Xilinx Vivado (synthesis, place &amp; route, timing closure), Basys-3 FPGA, LTspice, Autodesk Fusion 360</li>
+      <li><b>Scripting &amp; Automation:</b> Tcl (Vivado synthesis/PnR flows), Bash/shell, Python, Git, GitHub Actions (CI)</li>
+      <li><b>Embedded &amp; Analog:</b> C/C++ (Arduino/embedded), op-amp signal conditioning, ADC/DAC systems, PCB design (schematic &rarr; layout &rarr; reflow)</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Projects</h2>
+
+    <div class="proj-title">OTTER Multi-Cycle RISC-V CPU <span class="tag">&mdash; SystemVerilog &middot; Vivado &middot; Basys-3 FPGA (CPE&nbsp;233)</span></div>
+    <ul class="tight">
+      <li>Designed a complete multi-cycle <b>RV32I</b> processor from gates up in SystemVerilog: PC &rarr; instruction memory &rarr; decode &rarr; 32&times;32 dual-read register file &rarr; 10-operation ALU &rarr; dual-port memory &rarr; writeback.</li>
+      <li>Implemented a 2-state (FETCH/EXEC) FSM control unit and a branch-condition generator (br_eq, br_lt, br_ltu); built an immediate generator covering I/S/B/U/J instruction formats.</li>
+      <li>Synthesized, placed-and-routed, and verified the design on a Basys-3 FPGA via the Vivado flow; debugged a branch-target miscalculation by gating PCWrite to the EXEC state and validating against the RISC-V ISA reference.</li>
+    </ul>
+
+    <div class="proj-title">Digital Systems &amp; FSM Design <span class="tag">&mdash; Vivado &middot; FPGA (CPE&nbsp;133)</span></div>
+    <ul class="tight">
+      <li>Built combinational and sequential blocks &mdash; MUXes, decoders, D-flip-flops, shift registers, counters, clock dividers &mdash; and implemented FSMs using binary, one-hot, and gray state encodings, then synthesized and place-and-routed them onto FPGA hardware.</li>
+    </ul>
+
+    <div class="proj-title">End-to-End Analog&harr;Digital Signal System + 4-bit DAC <span class="tag">&mdash; PCB &middot; LTspice (EE&nbsp;143)</span></div>
+    <ul class="tight">
+      <li>Designed, simulated (LTspice), fabricated, and integrated a <b>4-bit binary-weighted DAC</b> (LM1458, 1206 SMD) on a 1&times;1&Prime; 2-layer PCB within a full audio &rarr; Arduino ADC &rarr; DAC &rarr; speaker pipeline.</li>
+      <li>Achieved 62.5&nbsp;mV/step resolution with measured-vs-theoretical error within &plusmn;1&nbsp;LSB across all 16 codes; resolved analog loading with a unity-gain buffer.</li>
+    </ul>
+
+    <div class="proj-title">9-Stage Electromechanical System <span class="tag">&mdash; Embedded C++ &middot; Analog Design (EE&nbsp;241)</span></div>
+    <ul class="tight">
+      <li>Integrated a sequentially dependent 9-stage system (capacitive sensing, relay isolation, 580&nbsp;V strobe, Schmitt-trigger detector, solenoid launcher, 555-timer metal detector, electromagnet release, tilt switch, LCD).</li>
+      <li>Implemented frequency-domain metal detection (5.1% shift) with streak-based filtering; <b>diagnosed and resolved 6 distinct failure modes</b> across electrical, mechanical, and firmware domains via root-cause analysis.</li>
+    </ul>
+
+  </section>
+
+  <section>
+    <h2>Experience</h2>
+    <div class="row">
+      <span class="left">Natera <span style="font-weight:400; font-style:italic;">&mdash; Engineering/Operations Intern</span></span>
+      <span class="right">Pleasanton, CA &middot; Summer 2025</span>
+    </div>
+    <ul class="tight">
+      <li>Mapped a validation-and-packaging workflow, identified bottlenecks, and removed redundant verification steps, cutting cycle time from ~20&nbsp;min to ~10&ndash;12&nbsp;min (observed estimate).</li>
+      <li>Standardized the workflow and authored reference documentation adopted by the team for consistency.</li>
+    </ul>
+    <div class="row">
+      <span class="left">CVS Pharmacy <span style="font-weight:400; font-style:italic;">&mdash; Pharmacy Technician (CA state certified)</span></span>
+      <span class="right">Dublin, CA &middot; Jun 2023 &ndash; Jun 2024</span>
+    </div>
+    <ul class="tight">
+      <li>Maintained accuracy and regulatory compliance under time pressure in a high-volume retail pharmacy.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Leadership &amp; Activities</h2>
+    <ul class="tight">
+      <li><b>Poly-Engineering Consulting (Cal Poly):</b> designed and shipped an internal role-aware operating system (PEC Nexus) for project execution, scheduling, and permissions.</li>
+      <li>Varsity wrestling (4 yrs) &middot; Eagle Scout candidate (11 yrs, Scouting) &middot; CPR/First Aid certified.</li>
+    </ul>
+  </section>
+
+</body>
+</html>
