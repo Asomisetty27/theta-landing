@@ -379,7 +379,7 @@ function InstallBlock() {
 
 /* ─── Hero ────────────────────────────────────────────────────────────────── */
 const HERO_STATS = [
-  { v: '2 of 3',   l: 'blind flags RMA-confirmed', s: "operator's own maintenance records · z up to +15.6" },
+  { v: '2 of 3',   l: 'flags independently confirmed', s: "one RMA'd · one re-measured by the operator's staff · z to +15.6" },
   { v: '72°C',     l: 'the invisible fault',       s: '1°C from a healthy peer · no threshold fires' },
   { v: '60 s',     l: 'to see it yourself',        s: 'pip install runtheta · theta demo · no GPU needed' },
 ];
@@ -474,7 +474,7 @@ function Hero() {
               border: `1px solid ${T.healthy}30`,
               background: `${T.healthy}08`,
             }}>
-              ● Blind-tested on a production 64× H100 fleet · 2 of 3 flags RMA-confirmed
+              ● Blind-tested on a production 64× H100 fleet · 2 of 3 flags independently confirmed
             </span>
           </div>
           <div data-h style={{ opacity: 0, marginBottom: 12 }}>
@@ -2297,7 +2297,7 @@ const DEMO_SCRIPT: TermLine[] = [
   { kind: 'out', text: '     node-03:6   71.9°C   OK', color: T.muted },
   { kind: 'out', text: '     node-02:6   70.9°C   OK', color: T.muted },
   { kind: 'out', text: '     GPUs over the 85°C alert threshold: 0', color: T.healthy },
-  { kind: 'out', text: '     Two of these GPUs are about to be RMA’d. Temperature cannot tell you which.', color: T.caution },
+  { kind: 'out', text: '     Two of these GPUs will be confirmed degraded. Temperature cannot tell you which.', color: T.caution },
   { kind: 'wait', ms: 1100 },
   { kind: 'out', text: '  2. The same telemetry through theta   (peer-relative R_θ · ~653 W matched)', color: T.bp },
   { kind: 'out', text: '     node-05:7   R_θ 0.0856   z +14.6   CRITICAL', color: T.critical },
@@ -2305,8 +2305,8 @@ const DEMO_SCRIPT: TermLine[] = [
   { kind: 'out', text: '     node-05:2   R_θ 0.0547   z +3.0    anomaly', color: T.caution },
   { kind: 'wait', ms: 1100 },
   { kind: 'out', text: '  3. The receipt', color: T.bp },
-  { kind: 'out', text: '     node-05:7   confirmed degraded · RMA’d', color: T.healthy },
-  { kind: 'out', text: '     node-03:6   independently RMA’d · ran 1.0°C from a healthy peer', color: T.healthy },
+  { kind: 'out', text: '     node-03:6   replaced under the operator’s RMA process · ran 1.0°C from a healthy peer', color: T.healthy },
+  { kind: 'out', text: '     node-05:7   re-measured by the operator’s staff months later · still the outlier · +47.8%', color: T.healthy },
   { kind: 'out', text: '     node-05:2   third flag · unconfirmed to date', color: T.muted },
   { kind: 'wait', ms: 700 },
   { kind: 'out', text: '     scope: one fleet, one incident · 2 of 3 confirmed · condition, not prophecy', color: T.faint },
@@ -2404,7 +2404,7 @@ function TerminalDemo() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 72, alignItems: 'center' }} className="tos-two-col">
           <div>
             <SectionHead eyebrow="See it catch one · 60 seconds · no GPU needed" title={<>This is not a mockup.<br />It is a replay of a<br />real incident.</>}
-              body={<>Run <span style={{ fontFamily: FM, color: T.text }}>theta demo</span> after install and the agent replays de-identified telemetry from a real production 64× H100 incident through the same detectors it runs live. Temperature saw a healthy fleet. Theta flagged 3 units. The operator's own maintenance records confirmed 2 of them.</>} />
+              body={<>Run <span style={{ fontFamily: FM, color: T.text }}>theta demo</span> after install and the agent replays de-identified telemetry from a real production 64× H100 incident through the same detectors it runs live. Temperature saw a healthy fleet. Theta flagged 3 units. Two were confirmed independently: one replaced under the operator's RMA process, one re-measured degraded by the operator's own staff months later.</>} />
             <div style={{ marginTop: 28, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 4, border: `1px solid ${T.borderHi}`, background: T.s1, color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
