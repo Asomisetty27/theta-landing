@@ -1802,8 +1802,8 @@ function WhyNow() {
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-w style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Why now · the power ceiling"
-            title={<>Compute is no longer limited by GPUs you can buy.<br />It is limited by <span className="tos-grad-text">watts you can get.</span></>}
-            body="When you cannot add megawatts, the only way to grow compute is to stop losing it. A GPU with a degraded cooling path draws full power and delivers less compute, and nothing in standard telemetry tells you which one it is. Under a power ceiling, per-GPU health per watt stops being an ops nicety and becomes a financial line item." />
+            title={<>You can buy GPUs.<br /><span className="tos-grad-text">You cannot buy watts.</span></>}
+            body="Grid queues and transformer lead times cap new capacity for years. So the way to grow compute is to stop losing it. A GPU with a degraded cooling path draws full power and delivers less, and nothing in standard telemetry tells you which one it is. Under a power ceiling that gap is a line item." />
         </div>
         <div data-w style={{ opacity: 0 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 2, borderRadius: 6, overflow: 'hidden', background: T.s2 }}>
