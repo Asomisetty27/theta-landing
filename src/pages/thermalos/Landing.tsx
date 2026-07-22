@@ -299,20 +299,26 @@ function Nav() {
           <span style={{ fontFamily: FM, fontSize: 9.5, color: T.bp, border: `1px solid ${T.border}`, borderRadius: 3, padding: '2px 5px' }}>v0</span>
         </div>
         <div className="tos-nav-links" style={{ display: 'flex', gap: 26 }}>
-          {['signal', 'engine', 'evidence', 'gap', 'pricing'].map(l => (
-            <a key={l} href={`#${l}`} style={{ fontFamily: FM, fontSize: 10.5, letterSpacing: '.04em', color: T.muted, textDecoration: 'none', transition: 'color .15s' }}
+          {[
+            { l: 'demo', h: '#demo' },
+            { l: 'proof', h: '#production' },
+            { l: 'signal', h: '#signal' },
+            { l: 'why now', h: '#why-now' },
+            { l: 'pricing', h: '#pricing' },
+          ].map(x => (
+            <a key={x.l} href={x.h} style={{ fontFamily: FM, fontSize: 10.5, letterSpacing: '.04em', color: T.muted, textDecoration: 'none', transition: 'color .15s' }}
               onMouseEnter={e => (e.currentTarget.style.color = T.text)}
               onMouseLeave={e => (e.currentTarget.style.color = T.muted)}>
-              {l}
+              {x.l}
             </a>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <a href="https://github.com/Asomisetty27/theta" target="_blank" rel="noreferrer"
+          <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FM, fontSize: 10.5, padding: '6px 10px', borderRadius: 4, border: `1px solid ${T.border}`, color: T.muted, textDecoration: 'none', transition: 'border-color .15s, color .15s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi; (e.currentTarget as HTMLAnchorElement).style.color = T.text; }}
             onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.border; (e.currentTarget as HTMLAnchorElement).style.color = T.muted; }}>
-            <GithubIcon s={12} /> github
+            pypi
           </a>
           <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: FD, fontSize: 13, fontWeight: 500, padding: '6px 14px', borderRadius: 4, background: 'linear-gradient(180deg, #F2D788 0%, #D4AF37 55%, #A8852B 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.25), 0 2px 12px rgba(212,175,55,.2)', color: '#1A1408', textDecoration: 'none', transition: 'filter .15s, transform .15s, box-shadow .2s' }}
@@ -373,9 +379,9 @@ function InstallBlock() {
 
 /* ─── Hero ────────────────────────────────────────────────────────────────── */
 const HERO_STATS = [
-  { v: '3',        l: 'degraded H100s blind-flagged', s: 'production cluster · z up to +15.6' },
-  { v: '5 min',    l: 'to detection',        s: '0 false positives · 61 healthy GPUs' },
-  { v: '100%',     l: 'classifier acc.',     s: 'Decision Tree + steady-state window' },
+  { v: '2 of 3',   l: 'blind flags RMA-confirmed', s: "operator's own maintenance records · z up to +15.6" },
+  { v: '72°C',     l: 'the invisible fault',       s: '1°C from a healthy peer · no threshold fires' },
+  { v: '60 s',     l: 'to see it yourself',        s: 'pip install runtheta · theta demo · no GPU needed' },
 ];
 
 function Hero() {
@@ -442,7 +448,7 @@ function Hero() {
             paddingTop: 12,
           }}>
             <span style={{ position: 'absolute', top: 0, left: 0, width: 16, height: 16, border: `1px solid ${T.amber}`, borderRight: 'none', borderBottom: 'none' }} />
-            Thermal forensics<br />for <span className="tos-grad-text">GPU clusters.</span>
+            Every GPU looks healthy.<br /><span className="tos-grad-text">One is failing at 72°C.</span>
           </h1>
           <p data-h style={{
             opacity: 0,
@@ -453,10 +459,12 @@ function Hero() {
             maxWidth: 420,
             marginBottom: 18,
           }}>
-            Temperature alone is ambiguous. A hot GPU could be busy or failing.
-            Theta computes{' '}
-            <span style={{ fontFamily: FM, color: T.text, fontSize: 13.5 }}>R_θ = ΔT / P</span>{' '}
-            in real time from your DCGM telemetry.
+            Temperature cannot separate busy from broken. Theta computes each GPU's
+            thermal resistance,{' '}
+            <span style={{ fontFamily: FM, color: T.text, fontSize: 13.5 }}>R_θ = ΔT / P</span>,
+            live from the telemetry you already export, and compares it across the
+            fleet at matched load. The failing cooling path stands out at +4σ while
+            every dashboard stays green.
           </p>
           <div data-h style={{ opacity: 0, marginBottom: 14 }}>
             <span style={{
@@ -466,18 +474,18 @@ function Hero() {
               border: `1px solid ${T.healthy}30`,
               background: `${T.healthy}08`,
             }}>
-              ● Production-validated · 64× H100 · blind-flagged 3 degraded units
+              ● Blind-tested on a production 64× H100 fleet · 2 of 3 flags RMA-confirmed
             </span>
           </div>
           <div data-h style={{ opacity: 0, marginBottom: 12 }}>
             <InstallBlock />
           </div>
           <div data-h style={{ opacity: 0, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a href="https://github.com/Asomisetty27/theta" target="_blank" rel="noreferrer"
+            <a href="#demo"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 5, border: `1px solid ${T.borderHi}`, background: 'rgba(17,17,23,.85)', backdropFilter: 'blur(8px)', color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
               onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.muted)}
               onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi)}>
-              <GithubIcon /> github
+              watch the replay <ArrowRight s={11} />
             </a>
             <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 5, border: `1px solid ${T.borderHi}`, background: 'rgba(17,17,23,.85)', backdropFilter: 'blur(8px)', color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
@@ -1709,7 +1717,7 @@ function Footer() {
   // Research links are cross-domain now (amogh.site hosts the research
   // surfaces) — plain anchors, not router Links.
   const COLS = [
-    { t: 'product',  ls: [{ l: 'overview', h: '#signal' }, { l: 'production validation', h: '#production' }, { l: 'github', h: 'https://github.com/Asomisetty27/theta' }, { l: 'live fleet demo', h: `${RESEARCH_ORIGIN}${FLEET_BASE}` }, { l: 'changelog', h: 'https://github.com/Asomisetty27/theta/releases' }] },
+    { t: 'product',  ls: [{ l: 'theta demo', h: '#demo' }, { l: 'production validation', h: '#production' }, { l: 'pypi', h: 'https://pypi.org/project/runtheta/' }, { l: 'live fleet demo', h: `${RESEARCH_ORIGIN}${FLEET_BASE}` }, { l: 'release history', h: 'https://pypi.org/project/runtheta/#history' }] },
     { t: 'research', ls: [{ l: 'stage 1 findings', h: researchPath('findings') }, { l: 'R_θ metric', h: '#signal' }, { l: 'lead-time testbed', h: researchPath('lab') }, { l: 'publication', h: researchPath('publication') }] },
     { t: 'company',  ls: [{ l: 'about', h: '#' }, { l: 'contact', h: 'mailto:somisett@calpoly.edu' }, { l: 'privacy', h: '#' }, { l: 'MIT license', h: '#' }] },
   ];
@@ -1760,6 +1768,125 @@ function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+/* ─── Why now — the power ceiling ─────────────────────────────────────────── */
+const WHY_STATS = [
+  {
+    v: '~2,300 GW', l: 'waiting in US interconnection queues',
+    s: 'more proposed capacity than the entire installed US grid (LBNL, 2024)',
+  },
+  {
+    v: 'years', l: 'to energize new capacity',
+    s: 'interconnection waits plus multi-year transformer lead times',
+  },
+  {
+    v: 'full watts, less work', l: 'what a degraded GPU costs',
+    s: 'and in a synchronous job, the slowest GPU gates every GPU in the ring',
+  },
+];
+
+function WhyNow() {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.2 });
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-w]'), { opacity: [0, 1], translateY: [14, 0], duration: 680, delay: stagger(80), ease: 'outExpo' });
+  }, [inView]);
+
+  return (
+    <section ref={ref} id="why-now" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <ThetaDivider />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
+        <div data-w style={{ opacity: 0, marginBottom: 48 }}>
+          <SectionHead eyebrow="Why now · the power ceiling"
+            title={<>Compute is no longer limited by GPUs you can buy.<br />It is limited by <span className="tos-grad-text">watts you can get.</span></>}
+            body="When you cannot add megawatts, the only way to grow compute is to stop losing it. A GPU with a degraded cooling path draws full power and delivers less compute, and nothing in standard telemetry tells you which one it is. Under a power ceiling, per-GPU health per watt stops being an ops nicety and becomes a financial line item." />
+        </div>
+        <div data-w style={{ opacity: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 2, borderRadius: 6, overflow: 'hidden', background: T.s2 }}>
+            {WHY_STATS.map(s => (
+              <div key={s.l} style={{ background: T.s1, border: `1px solid ${T.border}`, padding: '22px 24px' }}>
+                <div style={{ fontFamily: FD, fontSize: 26, fontWeight: 600, letterSpacing: '-.02em', background: 'linear-gradient(135deg, #F0EADC 0%, #D4AF37 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.v}</div>
+                <div style={{ fontFamily: FM, fontSize: 10, color: T.text, marginTop: 7, letterSpacing: '.06em', textTransform: 'uppercase' }}>{s.l}</div>
+                <div style={{ fontFamily: FM, fontSize: 9.5, color: T.faint, marginTop: 4, lineHeight: 1.6 }}>{s.s}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div data-w style={{ opacity: 0, marginTop: 18 }}>
+          <p style={{ fontFamily: FM, fontSize: 10.5, lineHeight: 1.7, color: T.faint, maxWidth: 760 }}>
+            This is theta's job: find the GPUs wasting the watts you cannot replace, and the
+            degraded cooling paths behind them, while every temperature dashboard stays green.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Team — the disciplines map onto the problem ─────────────────────────── */
+const TEAM_TRACKS = [
+  {
+    k: 'EE', t: 'Electrical engineering',
+    d: 'Built the detector from the thermal physics up: the R_θ core, the peer-relative method, the agent, and the fleet analyses behind every claim on this page.',
+  },
+  {
+    k: 'ME', t: 'Mechanical engineering',
+    d: 'Owns the thermal ground truth: cooling-path fault physics, TIM characterization, and the instrumented lead-time testbed that validates detection against real hardware.',
+  },
+  {
+    k: 'CS', t: 'Computer science',
+    d: 'Owns the software and the scale: the pipeline that has to run on one node and on a thousand without becoming the noisiest thing in your stack.',
+  },
+];
+
+function Team() {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.2 });
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || !inView || rm()) return;
+    animate(root.querySelectorAll('[data-t]'), { opacity: [0, 1], translateY: [14, 0], duration: 680, delay: stagger(80), ease: 'outExpo' });
+  }, [inView]);
+
+  return (
+    <section ref={ref} id="team" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <ThetaDivider />
+      <ShowroomLight />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
+        <div data-t style={{ opacity: 0, marginBottom: 48 }}>
+          <SectionHead eyebrow="Who builds this"
+            title={<>GPU cooling failure is an EE + ME + CS problem.<br /><span className="tos-grad-text">So is the team.</span></>}
+            body="Theta is built at Cal Poly by a founding team that maps one-to-one onto the problem, advised from ex-Intel yield engineering. First reference deployment in progress at Cal Poly's $3M AI Factory (4× NVIDIA DGX B200)." />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+          {TEAM_TRACKS.map(m => (
+            <div data-t key={m.k} style={{ opacity: 0 }}>
+              <Panel glass label={m.k}>
+                <div style={{ padding: '16px 18px' }}>
+                  <div style={{ fontFamily: FD, fontSize: 14.5, fontWeight: 500, color: T.text, marginBottom: 8 }}>{m.t}</div>
+                  <p style={{ fontFamily: FD, fontSize: 12.5, lineHeight: 1.65, color: T.muted, margin: 0 }}>{m.d}</p>
+                </div>
+              </Panel>
+            </div>
+          ))}
+        </div>
+        <div data-t style={{ opacity: 0, marginTop: 18 }}>
+          <div className="tos-glass" style={{ borderRadius: 6, border: `1px solid ${T.border}`, padding: '16px 20px', maxWidth: 880 }}>
+            <p style={{ fontFamily: FM, fontSize: 11, lineHeight: 1.7, color: T.muted, margin: 0 }}>
+              <span style={{ color: T.text, fontWeight: 600 }}>The research under the product:</span>{' '}
+              five public GPU fleets, roughly 62,000 GPU service lives, every reported effect
+              permutation-tested; two measurement papers in preparation. And the boundary we
+              publish ourselves: thermal history does not predict abrupt failures. Theta detects
+              cooling-path condition today, peer-relative. No death-date oracles.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -2156,33 +2283,34 @@ type TermLine =
 
 const DEMO_SCRIPT: TermLine[] = [
   { kind: 'cmd', text: 'pip install runtheta' },
-  { kind: 'wait', ms: 400 },
-  { kind: 'out', text: 'Collecting runtheta', color: T.muted },
-  { kind: 'out', text: '  Downloading runtheta-0.1.10-py3-none-any.whl (52.3 kB)', color: T.faint },
-  { kind: 'out', text: '  Installing collected packages: runtheta', color: T.faint },
-  { kind: 'out', text: 'Successfully installed runtheta-0.1.10', color: T.healthy },
-  { kind: 'wait', ms: 700 },
-  { kind: 'cmd', text: 'theta setup' },
-  { kind: 'wait', ms: 500 },
-  { kind: 'out', text: '  ✓  Python 3.12.1', color: T.healthy },
-  { kind: 'out', text: '  ✓  pynvml  ·  driver 535.183.06  ·  4 GPUs detected', color: T.healthy },
-  { kind: 'out', text: '  ✓  prometheus_client: metrics export available', color: T.healthy },
+  { kind: 'wait', ms: 350 },
+  { kind: 'out', text: 'Successfully installed runtheta-0.1.12', color: T.healthy },
   { kind: 'wait', ms: 600 },
-  { kind: 'out', text: '  ━━━━━━  step 2/6  GPU inventory', color: T.bp },
-  { kind: 'out', text: '  GPU 0  Tesla T4    16 GB   42°C    11.4W   P8   ● online', color: T.muted },
-  { kind: 'out', text: '  GPU 1  Tesla T4    16 GB   70°C    68.0W   P0   ● online', color: T.muted },
-  { kind: 'out', text: '  GPU 2  Tesla T4    16 GB   67°C    31.2W   P0   ● online', color: T.muted },
-  { kind: 'out', text: '  GPU 3  Tesla T4    16 GB   55°C    12.6W   P8   ● online', color: T.muted },
-  { kind: 'wait', ms: 700 },
-  { kind: 'out', text: '  ━━━━━━  step 4/6  First R_θ reading', color: T.bp },
+  { kind: 'cmd', text: 'theta demo' },
   { kind: 'wait', ms: 500 },
-  { kind: 'out', text: '  GPU 0  R_θ=1.281 C/W  ● clean_idle           conf=1.00', color: T.bp },
-  { kind: 'out', text: '  GPU 1  R_θ=0.724 C/W  ● under_load           conf=0.99', color: T.healthy },
-  { kind: 'out', text: '  GPU 2  R_θ=1.541 C/W  ● zombie_recovery      conf=1.00', color: T.critical },
-  { kind: 'out', text: '  GPU 3  R_θ=2.104 C/W  ● child_exit_recovery  conf=0.98', color: T.caution },
-  { kind: 'wait', ms: 900 },
-  { kind: 'out', text: '  ! GPU 2: CUDA context retained at 31W. Release stale context.', color: T.critical },
-  { kind: 'wait', ms: 2200 },
+  { kind: 'out', text: '  replay of a real production incident', color: T.text },
+  { kind: 'out', text: '  64 H100s · 8 HGX nodes · a top US research university (de-identified)', color: T.faint },
+  { kind: 'out', text: '  same detectors the live agent runs · numerics unchanged', color: T.faint },
+  { kind: 'wait', ms: 800 },
+  { kind: 'out', text: '  1. What temperature monitoring sees', color: T.bp },
+  { kind: 'out', text: '     node-05:7   80.2°C   OK', color: T.muted },
+  { kind: 'out', text: '     node-03:6   71.9°C   OK', color: T.muted },
+  { kind: 'out', text: '     node-02:6   70.9°C   OK', color: T.muted },
+  { kind: 'out', text: '     GPUs over the 85°C alert threshold: 0', color: T.healthy },
+  { kind: 'out', text: '     Two of these GPUs are about to be RMA’d. Temperature cannot tell you which.', color: T.caution },
+  { kind: 'wait', ms: 1100 },
+  { kind: 'out', text: '  2. The same telemetry through theta   (peer-relative R_θ · ~653 W matched)', color: T.bp },
+  { kind: 'out', text: '     node-05:7   R_θ 0.0856   z +14.6   CRITICAL', color: T.critical },
+  { kind: 'out', text: '     node-03:6   R_θ 0.0731   z +4.0    anomaly', color: T.caution },
+  { kind: 'out', text: '     node-05:2   R_θ 0.0547   z +3.0    anomaly', color: T.caution },
+  { kind: 'wait', ms: 1100 },
+  { kind: 'out', text: '  3. The receipt', color: T.bp },
+  { kind: 'out', text: '     node-05:7   confirmed degraded · RMA’d', color: T.healthy },
+  { kind: 'out', text: '     node-03:6   independently RMA’d · ran 1.0°C from a healthy peer', color: T.healthy },
+  { kind: 'out', text: '     node-05:2   third flag · unconfirmed to date', color: T.muted },
+  { kind: 'wait', ms: 700 },
+  { kind: 'out', text: '     scope: one fleet, one incident · 2 of 3 confirmed · condition, not prophecy', color: T.faint },
+  { kind: 'wait', ms: 2400 },
 ];
 
 function TerminalDemo() {
@@ -2270,25 +2398,19 @@ function TerminalDemo() {
   }, [inView, paused]);
 
   return (
-    <section style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+    <section id="demo" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
       <div className="tos-grid-bg" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.35 }} />
       <div ref={wrapRef} style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 72, alignItems: 'center' }} className="tos-two-col">
           <div>
-            <SectionHead eyebrow="See it run" title={<>90 seconds from<br />pip install to first<br />R_θ reading.</>}
-              body={<>The setup wizard walks you through GPU detection, virtual ambient locking, and first classification, all from your terminal. Run <span style={{ fontFamily: FM, color: T.text }}>theta setup</span> after install.</>} />
+            <SectionHead eyebrow="See it catch one · 60 seconds · no GPU needed" title={<>This is not a mockup.<br />It is a replay of a<br />real incident.</>}
+              body={<>Run <span style={{ fontFamily: FM, color: T.text }}>theta demo</span> after install and the agent replays de-identified telemetry from a real production 64× H100 incident through the same detectors it runs live. Temperature saw a healthy fleet. Theta flagged 3 units. The operator's own maintenance records confirmed 2 of them.</>} />
             <div style={{ marginTop: 28, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <a href="https://pypi.org/project/runtheta/" target="_blank" rel="noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 4, border: `1px solid ${T.borderHi}`, background: T.s1, color: T.text, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'border-color .15s' }}
                 onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.healthy)}
                 onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi)}>
                 <Pulse />&nbsp;view on PyPI
-              </a>
-              <a href="https://github.com/Asomisetty27/theta#quick-start" target="_blank" rel="noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 4, border: `1px solid ${T.border}`, background: 'transparent', color: T.muted, fontFamily: FD, fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'color .15s, border-color .15s' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.borderHi; (e.currentTarget as HTMLAnchorElement).style.color = T.text; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = T.border; (e.currentTarget as HTMLAnchorElement).style.color = T.muted; }}>
-                docs <ChevronRight />
               </a>
             </div>
           </div>
@@ -2393,8 +2515,9 @@ export default function ThermalOSLanding() {
       <Nav />
       <Hero />
       <TerminalDemo />
-      <Signal />
       <ProductionProof />
+      <WhyNow />
+      <Signal />
       <Evidence />
       <FeaturesGrid />
       <AgentPipeline />
@@ -2405,6 +2528,7 @@ export default function ThermalOSLanding() {
         <OperatorViewShowcase />
       </React.Suspense>
       <CompetitorTable />
+      <Team />
       <Pricing />
       <Footer />
     </main>
