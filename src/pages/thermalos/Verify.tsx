@@ -363,7 +363,7 @@ export default function Verify() {
         }}>
           <span style={{ ...eyebrow, color: CHAMPAGNE }}>What this certificate will not claim</span>
           <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: "#8A93A0", fontSize: 13.5 }}>
-            <li style={{ marginBottom: 6 }}>No failure-date prediction. Five-fleet analysis found no thermal precursor for memory or detachment failures (permutation-nulled, published).</li>
+            <li style={{ marginBottom: 6 }}>No failure-date prediction. Five-fleet analysis found no thermal precursor for memory or detachment failures (permutation-nulled, in a paper in preparation).</li>
             <li style={{ marginBottom: 6 }}>No performance loss projected from R&theta; elevation. No stable coefficient exists below the throttle knee; loss appears only as observed throttle residency.</li>
             <li style={{ marginBottom: 6 }}>No physical inspection. Connectors, corrosion, and mounting are outside telemetry scope.</li>
             <li>Power-delivery internals are covered actuarially (trend + incident history), not by direct measurement. Stated, not hidden.</li>

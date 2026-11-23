@@ -13,14 +13,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <title>Theta: find the GPU that's quietly failing · runtheta.com</title>
-    <meta name="description" content="Some GPUs in every cluster are slowly cooking themselves, and they look identical to healthy ones on every dashboard. Theta reads the telemetry you already collect and names the failing card before it drags down the fleet. pip install runtheta">
+    <title>Theta · Find the failing GPUs your dashboards call healthy</title>
+    <meta name="description" content="Peer-relative thermal resistance for GPU fleets. Blind-tested on a production 64x H100 cluster: 3 flags, 2 confirmed by the operator (one replaced under RMA, one re-measured). pip install runtheta, then theta demo.">
     <meta name="author" content="Amogh Somisetty" />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://runtheta.com" />
-    <meta property="og:title" content="Theta: find the GPU that's quietly failing">
-    <meta property="og:description" content="A hot GPU could be busy, or it could be dying. Theta tells them apart from telemetry you already collect. It blind-flagged 3 degraded H100s on a 72-GPU Princeton cluster. Free on one node: pip install runtheta">
+    <meta property="og:title" content="Theta · Every GPU looks healthy. One is failing at 72°C.">
+    <meta property="og:description" content="Temperature cannot separate busy from broken. Theta compares thermal resistance across your fleet at matched load. Blind-tested on 64 production H100s, 2 of 3 flags independently confirmed. pip install runtheta">
     <meta property="og:image" content="https://runtheta.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -28,7 +28,7 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Theta: find the GPU that's quietly failing">
-    <meta name="twitter:description" content="A hot GPU could be busy, or it could be dying. Theta tells them apart from the telemetry you already collect. Blind-validated on 72 Princeton H100s.">
+    <meta name="twitter:description" content="A hot GPU could be busy, or it could be dying. Theta tells them apart from the telemetry you already collect. Blind-tested on 64 production H100s at Princeton: 3 flags, 2 confirmed.">
     <meta name="twitter:image" content="https://runtheta.com/og-image.png" />
 
     <!-- Structured data: helps "GPU thermal monitoring" discovery + rich results. -->
