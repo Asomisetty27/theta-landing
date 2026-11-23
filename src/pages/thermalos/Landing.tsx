@@ -302,9 +302,10 @@ function Nav() {
           {[
             { l: 'demo', h: '#demo' },
             { l: 'proof', h: '#production' },
-            { l: 'signal', h: '#signal' },
             { l: 'why now', h: '#why-now' },
+            { l: 'signal', h: '#signal' },
             { l: 'pricing', h: '#pricing' },
+            { l: 'faq', h: '#faq' },
           ].map(x => (
             <a key={x.l} href={x.h} style={{ fontFamily: FM, fontSize: 10.5, letterSpacing: '.04em', color: T.muted, textDecoration: 'none', transition: 'color .15s' }}
               onMouseEnter={e => (e.currentTarget.style.color = T.text)}
@@ -999,7 +1000,7 @@ function ProductionProof() {
         <div data-p style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Production validation · 64× H100 SXM5 · June 2026"
             title={<>Blind-tested on a production<br />H100 cluster. <span className="tos-grad-text">It worked.</span></>}
-            body="Telemetry from a major US research university's H100 cluster, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 degraded units, including one at 72°C that no temperature threshold can catch, because dozens of healthy GPUs in the same fleet run hotter. Detection used only the temp/power/util metrics SLURM/jobstats already exports to Prometheus, and it runs today on a job ID with theta report." />
+            body="Telemetry from Princeton University's Della cluster, 64 H100s in one training job, captured during a real cooling incident. Without access to maintenance records, peer-relative R_θ flagged 3 units, and the operator later confirmed 2. One sat at 72°C, inside the temperature band of several healthy GPUs in the same job, so no temperature threshold could catch it. Detection used only the temp/power/util metrics SLURM/jobstats already exports to Prometheus, and it runs today on a job ID with theta report." />
         </div>
 
         {/* stat row */}
@@ -1084,7 +1085,7 @@ function ProductionProof() {
             <p style={{ fontFamily: FM, fontSize: 11, lineHeight: 1.7, color: T.text }}>
               <span style={{ color: '#7ee0a0', fontWeight: 600 }}>Independently re-confirmed, months later.</span>{' '}
               The severe unit (z=+15.6) was flagged blind from a training-job snapshot. A separate diagnostic
-              run by the operator's own staff months afterward - different workload, different measurement
+              run by Princeton's own research computing staff months afterward - different workload, different measurement
               tooling, no knowledge of our flag - re-measured the same physical GPU at +47.8% R_θ vs peers
               at matched power (real ambient, pre-throttle), still the sole thermal outlier on that node.
               Two independent observations, same conclusion.
@@ -1097,9 +1098,13 @@ function ProductionProof() {
             Honesty footnote: the 3 flags are blind predictions, and 2 are now independently confirmed. The
             severe unit has independent field re-confirmation (above); the 72°C unit was subsequently replaced
             under RMA per the operator's own maintenance records. Only the third, marginal flag remains
-            unconfirmed. Cluster identity withheld pending operator approval. Cost figures are modeled
+            unconfirmed. Cost figures are modeled
             (twin RMSE 3.9°C, R²=0.81), assumptions: $2/GPU-hr, 85°C slowdown onset, perf ∝ P^0.45.
           </p>
+          <a href={researchPath('findings')} target="_blank" rel="noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 14, fontFamily: FM, fontSize: 11, letterSpacing: '.04em', color: T.healthy, textDecoration: 'none' }}>
+            controlled experiments, findings F1–F16, and the full research log → amogh.site/thermalos <ChevronRight />
+          </a>
         </div>
       </div>
     </section>
@@ -1124,7 +1129,7 @@ function FeaturesGrid() {
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '120px 32px' }}>
         <div data-f style={{ opacity: 0, marginBottom: 48 }}>
           <SectionHead eyebrow="Capabilities" title={<>Built for fleets<br />NVIDIA won&apos;t serve.</>}
-            body="Mission Control ships only on Blackwell DGX/GB200 systems. The long tail of mixed-vendor, older-gen neocloud fleets is structurally out of reach. That's the lane." />
+            body={<>Mission Control ships only on Blackwell DGX/GB200 systems. The long tail of mixed-vendor, older-gen neocloud fleets is structurally out of reach. That's the lane. Collectors for NVIDIA (NVML) and AMD Instinct (amdsmi) ship today, with hardware profiles from MI250X through MI355X. R_θ is validated on real telemetry across four NVIDIA generations: T4, V100, A100, H100. AMD's own Device Metrics Exporter surfaces per-GPU thermal-violation counters, but nobody computes peer-relative R_θ on Instinct, and no public per-GPU AMD dataset exists to validate it against ground truth. The first AMD fleet we instrument anchors the first public cross-vendor validation. <a href="mailto:asomisetty27@gmail.com?subject=Theta%20AMD%20fleet%20pilot" style={{ color: T.healthy, textDecoration: 'none' }}>Run Instinct? That could be you.</a></>} />
         </div>
         {/* 12-column named-area bento */}
         <div className="tos-features-grid" style={{ display: 'grid', gap: 12 }}>
@@ -1265,7 +1270,7 @@ const PIPELINE_STAGES = [
   {
     n: '05', name: 'Detect', code: 'temporal + peer',
     desc: 'Drift vs the GPU’s own baseline, plus peer-relative vs node-mates, with no warm-up.',
-    deep: 'Two complementary detectors. The temporal one compares each GPU to its OWN rolling healthy baseline and flags R_θ above mean + k·σ sustained over consecutive windows, with a robust Theil-Sen slope projecting an ETA to the threshold. Its blind spot (it needs warm-up and can’t see a unit degraded since startup) is closed by the peer-relative detector: cross-sectional, comparing each GPU to its matched-power node-mates via median/MAD robust-z, no warm-up. Across a fleet, two-way (node × ordinal) median polish first removes HGX baseboard-position structure. On real production H100s at a major research-computing center this blind-flagged 3 degraded units, one of them invisible to any temperature threshold.',
+    deep: 'Two complementary detectors. The temporal one compares each GPU to its OWN rolling healthy baseline and flags R_θ above mean + k·σ sustained over consecutive windows, with a robust Theil-Sen slope projecting an ETA to the threshold. Its blind spot (it needs warm-up and can’t see a unit degraded since startup) is closed by the peer-relative detector: cross-sectional, comparing each GPU to its matched-power node-mates via median/MAD robust-z, no warm-up. Across a fleet, two-way (node × ordinal) median polish first removes HGX baseboard-position structure. On real production H100s at a major research-computing center this blind-flagged 3 units, 2 since confirmed by the operator, one of them invisible to any temperature threshold.',
     spec: [
       'temporal: R_θ > μ + k·σ sustained',
       '  k_warn 2.0 · k_crit 3.5 · baseline ≥ 20 samples',
@@ -1719,7 +1724,7 @@ function Footer() {
   const COLS = [
     { t: 'product',  ls: [{ l: 'theta demo', h: '#demo' }, { l: 'production validation', h: '#production' }, { l: 'pypi', h: 'https://pypi.org/project/runtheta/' }, { l: 'live fleet demo', h: `${RESEARCH_ORIGIN}${FLEET_BASE}` }, { l: 'release history', h: 'https://pypi.org/project/runtheta/#history' }] },
     { t: 'research', ls: [{ l: 'stage 1 findings', h: researchPath('findings') }, { l: 'R_θ metric', h: '#signal' }, { l: 'lead-time testbed', h: researchPath('lab') }, { l: 'publication', h: researchPath('publication') }] },
-    { t: 'company',  ls: [{ l: 'about', h: '#' }, { l: 'contact', h: 'mailto:somisett@calpoly.edu' }, { l: 'privacy', h: '#' }, { l: 'MIT license', h: '#' }] },
+    { t: 'company',  ls: [{ l: 'about the builder', h: 'https://amogh.site' }, { l: 'research program', h: `${RESEARCH_ORIGIN}/thermalos` }, { l: 'contact', h: 'mailto:somisett@calpoly.edu' }, { l: 'MIT license', h: 'https://github.com/Asomisetty27/theta/blob/main/LICENSE' }] },
   ];
   return (
     <footer style={{ borderTop: `1px solid ${T.border}`, background: T.s0, position: 'relative', overflow: 'hidden' }}>
@@ -1730,7 +1735,7 @@ function Footer() {
             <div style={{ marginBottom: 10 }}>
               <ThetaLogo size={20} variant="full" color={T.healthy} />
             </div>
-            <p style={{ fontFamily: FM, fontSize: 10.5, color: T.faint, lineHeight: 1.7, marginBottom: 18 }}>GPU thermal-power forensics.<br />Built at Cal Poly · MIT License.</p>
+            <p style={{ fontFamily: FM, fontSize: 10.5, color: T.faint, lineHeight: 1.7, marginBottom: 18 }}>GPU thermal-power forensics.<br />Built by <a href="https://amogh.site" target="_blank" rel="noreferrer" style={{ color: T.muted, textDecoration: 'underline', textUnderlineOffset: 3 }}>Amogh Somisetty</a> at Cal Poly · MIT License.</p>
             <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', border: `1px solid ${T.border}`, borderRadius: 4, overflow: 'hidden', maxWidth: 260 }}>
               <input type="email" placeholder="stay updated" style={{ flex: 1, background: 'transparent', border: 'none', padding: '7px 10px', color: T.text, fontFamily: FM, fontSize: 10, outline: 'none' }} />
               <button type="submit" style={{ padding: '7px 10px', background: T.s2, border: 'none', borderLeft: `1px solid ${T.border}`, color: T.muted, fontFamily: FM, fontSize: 10, cursor: 'pointer', transition: 'color .15s' }}
@@ -2230,7 +2235,10 @@ html { scroll-behavior: smooth; }
 /* Responsive */
 /* Grid children default to min-width:auto — a wide table inside a 1fr column
    forces the column past the viewport (the mobile signal-table blowout). */
-.tos-two-col > *, .tos-evidence-grid > *, .tos-features-grid > * { min-width: 0; }
+.tos-two-col > *, .tos-evidence-grid > *, .tos-features-grid > *, .tos-stat-grid > * { min-width: 0; }
+@media (max-width: 900px) {
+  .tos-stat-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+}
 @media (max-width: 960px) {
   .tos-hero-layout { grid-template-columns: 1fr !important; gap: 48px !important; }
   .tos-two-col { grid-template-columns: 1fr !important; gap: 48px !important; }
@@ -2507,6 +2515,134 @@ function sleep(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
 }
 
+
+/* ─── Story — the plain-language on-ramp (non-technical entry point) ──────── */
+function StorySection() {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  const steps = [
+    { n: '01', title: 'Install', body: <>One command on any machine that can see your GPUs: <span style={{ fontFamily: FM, color: T.text }}>pip install runtheta</span>. Ninety seconds later you have your first reading. Kubernetes fleet? One <span style={{ fontFamily: FM, color: T.text }}>helm install</span>.</> },
+    { n: '02', title: 'Watch', body: <>Theta computes every GPU's cooling health from the gauges your cluster already exports. No new hardware, no code changes, read-only. Each card is compared against its own history and its neighbors.</> },
+    { n: '03', title: 'Act', body: <>When one card's cooling starts failing, Theta names the unit and the probable cause (airflow, thermal paste, or intermittent contact) while it still looks "normal" to every temperature alarm.</> },
+  ];
+  return (
+    <section ref={ref} id="story" className="tos-section-glow-blue" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '110px 32px' }}>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }}>
+          <SectionHead eyebrow="The problem, in plain terms"
+            title={<>Hot because it's busy,<br />or hot because it's dying?</>}
+            body={<>A GPU at 75&nbsp;°C is like a person with a high temperature after a run: maybe that's exercise, maybe that's a fever. The thermometer can't tell you which. Theta divides the heat by the work being done, watts in against degrees out, to get each GPU's true <em>cooling health</em>. A busy card and a dying card read the same temperature; they never read the same heat-per-watt.</>} />
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.55, delay: 0.1 }}
+          style={{ margin: '44px 0', borderRadius: 10, overflow: 'hidden', border: `1px solid ${T.border}` }}>
+          <img src="/generated/busy-vs-failing.webp" alt="Two identical GPUs radiating the same heat. Thermal contour lines reveal one is merely busy while the other is failing"
+            style={{ display: 'block', width: '100%', height: 'auto' }} loading="lazy" />
+          <div style={{ padding: '10px 16px', fontFamily: FM, fontSize: 10, letterSpacing: '.05em', color: T.faint, borderTop: `1px solid ${T.border}`, background: T.s0 }}>
+            SAME HEAT · DIFFERENT STORY · THE CONTOURS ARE WHAT THETA SEES
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.55, delay: 0.18 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 44 }} className="tos-stat-grid">
+          {[
+            { big: '$30–40k', small: 'what one datacenter GPU costs. Cooling faults kill them early' },
+            { big: '1 of 64', small: 'in synchronous AI training, the slowest GPU sets the pace for all of them' },
+            { big: '$12.2k/mo', small: 'modeled waste from a single undetected degraded unit at 35 °C inlet' },
+          ].map(c => (
+            <div key={c.big} style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: T.s0, padding: '18px 20px' }}>
+              <div style={{ fontFamily: FD, fontSize: 26, fontWeight: 600, color: T.text, letterSpacing: '-.02em' }}>{c.big}</div>
+              <div style={{ fontFamily: FD, fontSize: 12.5, lineHeight: 1.55, color: T.muted, marginTop: 6 }}>{c.small}</div>
+            </div>
+          ))}
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.55, delay: 0.26 }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }} className="tos-stat-grid">
+          {steps.map(st => (
+            <Panel key={st.n} label={`step ${st.n}`}>
+              <div style={{ padding: '18px 20px' }}>
+                <div style={{ fontFamily: FD, fontSize: 15, fontWeight: 600, color: T.text, marginBottom: 8 }}>{st.title}</div>
+                <div style={{ fontFamily: FD, fontSize: 12.5, lineHeight: 1.6, color: T.muted }}>{st.body}</div>
+              </div>
+            </Panel>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Persona band — two doors, one product ───────────────────────────────── */
+function PersonaBand() {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  return (
+    <section ref={ref} style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1240, margin: '0 auto', padding: '90px 32px' }}>
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }}
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="tos-two-col">
+          <Panel label="you run the GPUs" glass>
+            <div style={{ padding: '24px 24px 22px' }}>
+              <div style={{ fontFamily: FD, fontSize: 17, fontWeight: 600, color: T.text, marginBottom: 8 }}>Try it on one node, right now.</div>
+              <div style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.6, color: T.muted, marginBottom: 16 }}>
+                Free forever on a single node. MIT licensed, read-only, nothing leaves your machine.
+                First R_θ reading in about 90 seconds.
+              </div>
+              <InstallBlock />
+            </div>
+          </Panel>
+          <Panel label="you run the org" glass>
+            <div style={{ padding: '24px 24px 22px' }}>
+              <div style={{ fontFamily: FD, fontSize: 17, fontWeight: 600, color: T.text, marginBottom: 8 }}>Get a pilot on your fleet.</div>
+              <div style={{ fontFamily: FD, fontSize: 13, lineHeight: 1.6, color: T.muted, marginBottom: 16 }}>
+                A read-only pilot against telemetry you already export. You get back a
+                characterization report of your fleet: which units are degrading, why,
+                and what they cost you. Blind-tested on 64 production H100s at Princeton.
+              </div>
+              <a href="mailto:asomisetty27@gmail.com?subject=Theta%20fleet%20pilot"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 4, background: 'linear-gradient(180deg, #F2D788 0%, #D4AF37 55%, #A8852B 100%)', color: '#1A1408', fontFamily: FD, fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
+                Request the pilot brief <ArrowRight s={12} />
+              </a>
+            </div>
+          </Panel>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── FAQ — the four objections everyone asks ─────────────────────────────── */
+function FaqSection() {
+  const faqs: [string, React.ReactNode][] = [
+    ["Doesn't NVIDIA already do this?",
+      <>NVIDIA's tooling (DCGM, Fleet Intelligence) exposes temperature and power as separate fields and alerts on raw thresholds. None of it computes thermal resistance or compares a GPU against its peers. We verified that at the source level. That peer-relative signal is exactly how Theta caught a degrading unit at 72&nbsp;°C that no temperature alarm can see.</>],
+    ["What does it need access to?",
+      <>Read-only GPU telemetry (NVML/DCGM), the same gauges <span style={{ fontFamily: FM }}>nvidia-smi</span> reads. No code changes, no kernel modules, no job data. Nothing leaves your machines unless you point an exporter somewhere.</>],
+    ["What's the overhead?",
+      <>A polling loop every few seconds against counters the driver already maintains. The systemd unit ships CPU-capped at 25% of one core and 512&nbsp;MB; the Kubernetes chart carries the same limits. The agent is built to never compete with your workloads.</>],
+    ["Can it break my cluster?",
+      <>No. Theta observes and reports. It never throttles, drains, or reschedules anything. Acting on its findings stays a human (or policy-gated) decision. On Kubernetes it labels nodes; your scheduler decides what that means.</>],
+  ];
+  return (
+    <section id="faq" style={{ borderTop: `1px solid ${T.border}`, position: 'relative' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 860, margin: '0 auto', padding: '100px 32px' }}>
+        <SectionHead center eyebrow="Fair questions" title="The four things everyone asks." />
+        <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {faqs.map(([q, a]) => (
+            <details key={q} className="tos-faq" style={{ border: `1px solid ${T.border}`, borderRadius: 8, background: T.s0 }}>
+              <summary style={{ cursor: 'pointer', padding: '16px 20px', fontFamily: FD, fontSize: 14.5, fontWeight: 500, color: T.text, listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {q}<span style={{ color: T.faint, fontFamily: FM, fontSize: 14 }}>+</span>
+              </summary>
+              <div style={{ padding: '0 20px 18px', fontFamily: FD, fontSize: 13, lineHeight: 1.65, color: T.muted }}>{a}</div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Root ────────────────────────────────────────────────────────────────── */
 export default function ThermalOSLanding() {
   return (
@@ -2514,11 +2650,11 @@ export default function ThermalOSLanding() {
       <style>{STYLES}</style>
       <Nav />
       <Hero />
+      <StorySection />
       <TerminalDemo />
       <ProductionProof />
       <WhyNow />
       <Signal />
-      <Evidence />
       <FeaturesGrid />
       <AgentPipeline />
       <React.Suspense fallback={null}>
@@ -2529,7 +2665,9 @@ export default function ThermalOSLanding() {
       </React.Suspense>
       <CompetitorTable />
       <Team />
+      <PersonaBand />
       <Pricing />
+      <FaqSection />
       <Footer />
     </main>
   );
